@@ -41,6 +41,24 @@
       "over": 2.18,
       "under": 1.66,
       "line": 2.5
+    },
+    {
+      "name": "BetBoom",
+      "home": 1.36,
+      "draw": 5.2,
+      "away": 9.2,
+      "over": 2.22,
+      "under": 1.64,
+      "line": 2.5
+    },
+    {
+      "name": "Марафон",
+      "home": 1.4,
+      "draw": 5.05,
+      "away": 8.6,
+      "over": 2.15,
+      "under": 1.68,
+      "line": 2.5
     }
   ]
 }
