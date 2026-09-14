@@ -58,13 +58,27 @@ def group_by_match(events: Iterable[OddsEvent]) -> dict[tuple[str, str], list[Od
 def merge(*sources: list[OddsEvent]) -> list[list[OddsEvent]]:
     """
     Объединяет события из нескольких источников в группы по матчу.
-    Возвращает список групп, каждая группа = один матч с несколькими БК.
+    Дедуп: для одного матча не больше 1 OddsEvent на (bookmaker).
+    Приоритет: первый источник (передавайте Fonbet первым → он победит).
     """
     all_events: list[OddsEvent] = []
     for src in sources:
         all_events.extend(src)
+
     groups = group_by_match(all_events)
-    return list(groups.values())
+
+    deduped_groups: list[list[OddsEvent]] = []
+    for key, events in groups.items():
+        seen_bk: set[str] = set()
+        unique: list[OddsEvent] = []
+        for ev in events:
+            bk_key = ev.bookmaker.strip().lower()
+            if bk_key in seen_bk:
+                continue
+            seen_bk.add(bk_key)
+            unique.append(ev)
+        deduped_groups.append(unique)
+    return deduped_groups
 
 
 def group_label(group: list[OddsEvent]) -> str:

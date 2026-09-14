@@ -1,0 +1,46 @@
+{
+  "event_id": "rpl_lokomotiv_krylia_2026_09_15",
+  "sport": "football",
+  "league": "RPL",
+  "home": "Локомотив Москва",
+  "away": "Крылья Советов",
+  "kickoff_iso": "1789580700",
+  "bookmakers": [
+    {
+      "name": "Фонбет",
+      "home": 1.82,
+      "draw": 3.95,
+      "away": 4.05,
+      "over": 2.05,
+      "under": 1.78,
+      "line": 2.5
+    },
+    {
+      "name": "Винлайн",
+      "home": 1.85,
+      "draw": 3.9,
+      "away": 3.95,
+      "over": 2.0,
+      "under": 1.8,
+      "line": 2.5
+    },
+    {
+      "name": "Лига Ставок",
+      "home": 1.79,
+      "draw": 4.0,
+      "away": 4.1,
+      "over": 2.1,
+      "under": 1.75,
+      "line": 2.5
+    },
+    {
+      "name": "PARI",
+      "home": 1.84,
+      "draw": 3.85,
+      "away": 4.0,
+      "over": 2.02,
+      "under": 1.78,
+      "line": 2.5
+    }
+  ]
+}
