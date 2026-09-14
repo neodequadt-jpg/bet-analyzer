@@ -30,3 +30,24 @@ Flashscore агрегирует offshore/зарубежные БК. Легаль
 - **Target odds (value target)**: RU BK source (manual на текущем этапе, или отдельный парсер ЦУПИС-БК)
 
 Конвейер: sharp reference → consensus → сравнение с RU BK odds → value bets.
+
+---
+
+## Update 2026-09-14: гео-зависимость
+
+Прокси 18080 выходит в Скандинавии (норвежские bonus-тексты в HTML).
+Flashscore показывает скандинавские offshore БК: Lilibet (907), Betsmith (1259).
+
+Bet365 упоминается 93 раза, 1xBet — 117 раз, но это баннеры/тексты, 
+а не реальные odds-котировки. В DOM — только 2 div.odds.
+
+Следствие: Flashscore показывает только те БК, у которых есть партнёрка в текущем гео.
+Легальные RU БК (ЦУПИС) не появляются ни при каком гео — они не подключены к odds-feed Flashscore.
+
+## Финальный вывод
+
+Flashscore = sharp reference (offshore/зарубежные БК) для EPL/La Liga.
+Для РПЛ / RU БК нужен отдельный источник:
+- публичные API легальных БК (Winline, Fonbet, Liga Stavok) — гипотеза,
+- или ручной ввод (manual source, уже работает),
+- или парсинг ЦУПИС-сайтов.
