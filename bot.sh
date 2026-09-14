@@ -5,12 +5,17 @@ set -euo pipefail
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
-# Load .env.bot if present (KEY=VALUE lines, ignore comments and blanks)
+# Load .env.bot if present (KEY=VALUE lines, ignore comments and blanks).
+# An env var already set (even empty) takes precedence over .env.bot,
+# so `BOT_TOKEN="" ./bot.sh` reliably triggers the error below.
 if [[ -f .env.bot ]]; then
   while IFS= read -r line || [[ -n "$line" ]]; do
     # skip comments and empty lines
     [[ "$line" =~ ^[[:space:]]*# ]] && continue
     [[ -z "${line// /}" ]] && continue
+    key="${line%%=*}"
+    [[ -z "$key" ]] && continue
+    [[ -v "$key" ]] && continue
     export "$line"
   done < .env.bot
 fi
