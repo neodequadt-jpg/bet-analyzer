@@ -163,6 +163,66 @@ def main():
                 except Exception as e:
                     print(f"AI err: {e}")
 
+    elif mode == "express_ai":
+        # Собираем все value-bets по multi-BK матчам и просим AI собрать экспресс
+        from ai.express_builder import ExpressBuilder
+
+        fonbet_events = fetch_rpl_odds(force=True)
+        manual_events = []
+        for eid in list_manual_events():
+            manual_events.extend(parse_manual(eid))
+        groups = merge(fonbet_events, manual_events)
+        print(f"[express_ai] fonbet={len(fonbet_events)} manual={len(manual_events)} grouped={len(groups)}")
+
+        all_vbs = []
+        events_meta = {}
+        for group in groups:
+            if len(group) < 3:
+                continue
+            market = evaluate_event(group)
+            if market.get("status") != "ok":
+                continue
+            eid = group[0].event_id
+            events_meta[eid] = {
+                "home": market["event"]["home"],
+                "away": market["event"]["away"],
+                "league": market["event"]["league"],
+            }
+            for vb in evaluate_value(market):
+                d = vb.__dict__.copy()
+                d["event_id"] = eid
+                all_vbs.append(d)
+
+        print(f"[express_ai] total value-bets: {len(all_vbs)}")
+        for vb in all_vbs:
+            ev = events_meta.get(vb["event_id"], {})
+            print("  " + str(ev.get("home")) + " vs " + str(ev.get("away")) + ": "
+                  + str(vb["outcome"]) + " @ " + str(vb["bookmaker"])
+                  + " odds=" + str(vb["odds"])
+                  + " EV=" + str(round(vb["ev"]*100, 1)) + "%"
+                  + " score=" + str(vb["deal_score"]))
+
+        builder = ExpressBuilder()
+        try:
+            express = builder.build(all_vbs, events_meta)
+        except Exception as e:
+            print("[express_ai] AI err: " + str(e))
+            express = {"legs": [], "reason": "ai_error: " + str(e)[:120]}
+
+        print()
+        print("=" * 70)
+        print("  EXPRESS")
+        print("=" * 70)
+        print(json.dumps(express, ensure_ascii=False, indent=2))
+        print("=" * 70)
+
+        all_results.append({
+            "mode": "express_ai",
+            "value_bets_count": len(all_vbs),
+            "express": express,
+        })
+        total_value_bets += len(express.get("legs", []))
+
     else:  # mock
         parser = OddsParser()
         for event_id in MOCK_DATA:
