@@ -19,6 +19,7 @@ from bookmakers.parser import OddsParser, MOCK_DATA
 from bookmakers.manual_source import list_manual_events, parse_manual
 from bookmakers.fonbet_api import fetch_rpl_odds
 from bookmakers.normalizer import merge, group_label
+from ai.analyst import ValueBetAnalyst
 from market.consensus import evaluate_event
 from scoring.ev import evaluate_value
 
@@ -127,6 +128,40 @@ def main():
             if r:
                 all_results.append(r)
                 total_value_bets += len(r["value_bets"])
+
+    elif mode == "hybrid_ai":
+        # hybrid + AI-отчёт
+        fonbet_events = fetch_rpl_odds(force=True)
+        manual_events = []
+        for eid in list_manual_events():
+            manual_events.extend(parse_manual(eid))
+        groups = merge(fonbet_events, manual_events)
+        print(f"[hybrid_ai] fonbet={len(fonbet_events)} manual={len(manual_events)} grouped={len(groups)}")
+
+        ai = ValueBetAnalyst()
+        for group in groups:
+            if len(group) < 3:
+                continue
+            eid = group[0].event_id
+            r = process_event(eid, group, "hybrid_ai")
+            if not r:
+                continue
+            all_results.append(r)
+            total_value_bets += len(r["value_bets"])
+
+            # AI-отчёт только если есть value-bets
+            if r["value_bets"]:
+                print("\n--- AI REPORT ---")
+                try:
+                    report = ai.analyze(
+                        event=r["event"],
+                        consensus=r["consensus"],
+                        value_bets=r["value_bets"],
+                    )
+                    print(report)
+                    r["ai_report"] = report
+                except Exception as e:
+                    print(f"AI err: {e}")
 
     else:  # mock
         parser = OddsParser()
