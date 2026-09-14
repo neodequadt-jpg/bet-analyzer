@@ -200,9 +200,13 @@ def cmd_value() -> str:
 
 
 def cmd_express() -> str:
+    """Build express via AI. If value-bets < 2, fallback to market consensus picks."""
     results = build_pipeline()
+
     all_vbs = []
     events_meta = {}
+    fallback = []
+
     for idx, item in enumerate(results, start=1):
         ev = item["event"]
         eid = f"match_{idx}"
@@ -211,19 +215,38 @@ def cmd_express() -> str:
             "away": ev["away"],
             "league": ev["league"],
         }
+        # value-bets (strict)
         for vb in item["value_bets"]:
             d = dict(vb)
             d["event_id"] = eid
             d["event"] = f"{ev['home']} vs {ev['away']}"
             all_vbs.append(d)
 
-    express = ExpressBuilder().build(all_vbs, events_meta)
-    pretty = json.dumps(express, ensure_ascii=False, indent=2)
-    escaped = html.escape(pretty)
-    if len(escaped) <= MAX_MESSAGE_LEN:
-        return "<pre>" + escaped + "</pre>"
-    return escaped
+    # fallback: best-odds из consensus по всем матчам
+    for idx, item in enumerate(results, start=1):
+        ev = item["event"]
+        eid = f"match_{idx}"
+        for outcome, c in item["consensus"].items():
+            best_odds = c.get("consensus_odds")
+            if not best_odds:
+                continue
+            fallback.append({
+                "event_id": eid,
+                "outcome": outcome,
+                "bookmaker": "consensus",
+                "odds": best_odds,
+                "ev": 0.0,
+                "confidence": c.get("confidence", 0),
+                "trust_score": 0.9,
+                "deal_score": int(c.get("confidence", 0) * 100),
+            })
 
+    # sort fallback by deal_score desc
+    fallback.sort(key=lambda x: x["deal_score"], reverse=True)
+
+    express = ExpressBuilder().build(all_vbs, events_meta, fallback_candidates=fallback)
+    pretty = json.dumps(express, ensure_ascii=False, indent=2)
+    return "<pre>" + html.escape(pretty) + "</pre>"
 
 def cmd_report() -> str:
     results = build_pipeline()

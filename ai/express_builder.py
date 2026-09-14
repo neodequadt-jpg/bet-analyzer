@@ -1,14 +1,10 @@
-"""Сборщик экспрессов (пари) через OmniRoute.
-
-Берёт value-bets, фильтрует кандидатов, отдаёт их AI-модели
-и возвращает JSON-схему экспресса как есть.
-"""
+"""Express builder with value-bets + fallback to market consensus."""
 
 import json
 import os
 
 import requests
-from ai.express_prompt import EXPRESS_SYSTEM_PROMPT
+from ai.express_prompt import EXPRESS_SYSTEM_PROMPT, EXPRESS_CONSENSUS_PROMPT
 
 OMNI_URL = "http://127.0.0.1:20128/v1/chat/completions"
 MODEL = "oc/big-pickle"
@@ -25,8 +21,7 @@ class ExpressBuilder:
 
     @staticmethod
     def _filter_candidates(value_bets):
-        """Pre-filter: только кандидаты с EV >= 0.03, confidence >= 0.6, trust_score >= 0.7."""
-        candidates = []
+        out = []
         for vb in value_bets:
             if float(vb.get("ev") or 0) < MIN_EV:
                 continue
@@ -34,32 +29,50 @@ class ExpressBuilder:
                 continue
             if float(vb.get("trust_score") or 0) < MIN_TRUST_SCORE:
                 continue
-            candidates.append(vb)
-        return candidates
+            out.append(vb)
+        return out
 
     @staticmethod
-    def _build_user_prompt(candidates, events_meta):
+    def _build_user_prompt(candidates, events_meta, mode):
         lines = []
-        lines.append("Value-bets (уже отфильтрованы: EV >= 0.03, confidence >= 0.6, trust_score >= 0.7):")
+        if mode == "value":
+            lines.append("Value-bets (EV>=0.03, conf>=0.6, trust>=0.7):")
+        else:
+            lines.append("Market-consensus candidates (no strict EV filter):")
         for vb in candidates:
-            event = vb.get("event") or vb.get("event_id") or "?"
+            eid = vb.get("event_id") or vb.get("event") or "?"
+            meta = events_meta.get(eid, {})
+            label = f"{meta.get('home', vb.get('event', '?'))} vs {meta.get('away', '')}".strip()
             lines.append(
-                "  - " + str(event) + " | " + str(vb.get("outcome")) + " @ "
+                "  - " + label + " | " + str(vb.get("outcome")) + " @ "
                 + str(vb.get("bookmaker")) + " odds=" + str(vb.get("odds"))
-                + " EV=" + str(vb.get("ev")) + " deal_score=" + str(vb.get("deal_score"))
+                + " EV=" + str(vb.get("ev", 0)) + " deal_score=" + str(vb.get("deal_score", 0))
             )
         lines.append("")
-        lines.append("Метаданные матчей (запрет корреляции: максимум 1 исход на матч):")
+        lines.append("Match metadata (no correlation: max 1 outcome per match):")
         lines.append(json.dumps(events_meta, ensure_ascii=False, indent=2))
         lines.append("")
-        lines.append("Собери экспресс из 2-4 исходов, total_odds <= 50.0.")
-        lines.append("Ответь строго по JSON-схеме из системного промпта. Без гарантий, без хайпа.")
+        lines.append("Build parlay of 2-4 legs, total_odds <= 50.0.")
+        lines.append("Reply strictly with JSON schema from system prompt.")
         return "\n".join(lines)
 
-    def build(self, value_bets, events_meta):
-        candidates = self._filter_candidates(value_bets)
-        if len(candidates) < 2:
-            return {"legs": [], "reason": "insufficient value-bets"}
+    def build(self, value_bets, events_meta, fallback_candidates=None):
+        """
+        value_bets: candidates from scoring.ev (may be empty)
+        events_meta: {event_id: {home, away, league}}
+        fallback_candidates: if value-bets < 2, use these (best-odds from consensus)
+        """
+        value_candidates = self._filter_candidates(value_bets)
+
+        if len(value_candidates) >= 2:
+            candidates = value_candidates
+            mode = "value"
+        elif fallback_candidates and len(fallback_candidates) >= 2:
+            candidates = fallback_candidates[:8]
+            mode = "consensus"
+            print("[express_builder] fallback: consensus picks (" + str(len(candidates)) + ")", flush=True)
+        else:
+            return {"legs": [], "reason": "insufficient candidates"}
 
         headers = {"Content-Type": "application/json"}
         if self.api_key:
@@ -67,8 +80,8 @@ class ExpressBuilder:
         payload = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": EXPRESS_SYSTEM_PROMPT},
-                {"role": "user", "content": self._build_user_prompt(candidates, events_meta)},
+                {"role": "system", "content": EXPRESS_CONSENSUS_PROMPT if mode == "consensus" else EXPRESS_SYSTEM_PROMPT},
+                {"role": "user", "content": self._build_user_prompt(candidates, events_meta, mode)},
             ],
             "temperature": 0.2,
             "max_tokens": 800,
