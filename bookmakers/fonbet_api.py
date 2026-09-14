@@ -43,7 +43,9 @@ def fetch_list_base(force: bool = False) -> dict:
             "Accept-Encoding": "gzip, deflate",
         },
     )
-    with urllib.request.urlopen(req, timeout=30) as r:
+    # Отключаем system proxy (127.0.0.1:8118 мёртв)
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    with opener.open(req, timeout=30) as r:
         body = r.read()
         if body[:1] == b"\x1f":  # gzip magic
             body = gzip.decompress(body)
