@@ -7,14 +7,11 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+from bookmakers.events import all_event_ids
 from bookmakers.parser import OddsParser
 from market.consensus import evaluate_event
 from scoring.ev import evaluate_value
 
-
-EVENTS = [
-    "rpl_zenit_spartak_2026_09_15",
-]
 
 RUNS_DIR = Path("data/runs")
 RUNS_DIR.mkdir(parents=True, exist_ok=True)
@@ -39,11 +36,17 @@ def save_run(results: list[dict]) -> str:
 def main():
     parser = OddsParser()
     all_results = []
+    total_value_bets = 0
 
-    for event_id in EVENTS:
+    for event_id in all_event_ids():
         print(f"\n=== EVENT {event_id} ===")
 
-        events = parser.parse(event_id)
+        try:
+            events = parser.parse(event_id)
+        except ValueError as e:
+            print(f"SKIP: {e}")
+            continue
+
         print(f"Собрано кэфов от {len(events)} БК")
 
         market_data = evaluate_event(events)
@@ -55,8 +58,7 @@ def main():
         print(f"{ev['home']} — {ev['away']} ({ev['league']})")
         print(f"kickoff: {ev['kickoff']}")
 
-        consensus = market_data["consensus"]
-        for outcome, c in consensus.items():
+        for outcome, c in market_data["consensus"].items():
             print(
                 f"  {outcome:6} prob={c['consensus_prob']:.3f} "
                 f"odds={c['consensus_odds']} "
@@ -65,6 +67,7 @@ def main():
             )
 
         value_bets = evaluate_value(market_data)
+        total_value_bets += len(value_bets)
         print(f"\nVALUE BETS: {len(value_bets)}")
 
         for vb in value_bets:
@@ -80,13 +83,17 @@ def main():
         all_results.append({
             "event_id": event_id,
             "event": ev,
-            "consensus": consensus,
+            "consensus": market_data["consensus"],
             "value_bets": [vb.__dict__ for vb in value_bets],
         })
 
+    print(f"\n=== ИТОГО ===")
+    print(f"Событий: {len(all_results)}")
+    print(f"Value-bets: {total_value_bets}")
+
     if all_results:
         path = save_run(all_results)
-        print(f"\nСохранено: {path}")
+        print(f"Сохранено: {path}")
 
 
 if __name__ == "__main__":

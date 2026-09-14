@@ -1,9 +1,5 @@
 """
-Value detection: находим исходы, где кэф БК выше consensus-честного.
-
-EV на 1 ₽ ставки: EV = true_prob * odds - 1
-Kelly:           f = (true_prob * odds - 1) / (odds - 1)
-deal_score:      комбинирует EV, confidence и trust_score БК.
+Value detection на leave-one-out consensus.
 """
 
 from dataclasses import dataclass
@@ -27,7 +23,7 @@ class ValueBet:
     reasons: list
 
 
-def _kelly(true_prob: float, odds: float) -> float:
+def _kelly(true_prob, odds):
     if odds <= 1.0:
         return 0.0
     b = odds - 1.0
@@ -37,10 +33,9 @@ def _kelly(true_prob: float, odds: float) -> float:
     return max(0.0, f)
 
 
-def _deal_score(ev: float, confidence: float, trust: float) -> int:
+def _deal_score(ev, confidence, trust):
     if ev <= 0:
         return 0
-
     if ev >= 0.15:
         ev_score = 100
     elif ev >= 0.10:
@@ -51,31 +46,32 @@ def _deal_score(ev: float, confidence: float, trust: float) -> int:
         ev_score = 40
     else:
         ev_score = max(0, round(ev * 1000))
-
     raw = ev_score * (0.5 + 0.5 * confidence) * (0.5 + 0.5 * trust)
     return max(0, min(100, round(raw)))
 
 
-def evaluate_value(event_data: dict) -> list[ValueBet]:
+def evaluate_value(event_data):
     if event_data.get("status") != "ok":
         return []
 
-    consensus = event_data["consensus"]
-    best_odds = event_data["best_odds"]
-    value_bets: list[ValueBet] = []
+    per_bk = event_data.get("consensus_per_bk", {})
+    best_odds = event_data.get("best_odds", {})
+    value_bets = []
 
-    for outcome, c in consensus.items():
-        if outcome not in best_odds:
+    for outcome, best in best_odds.items():
+        bk_name = best["bookmaker"]
+        bk_outcomes = per_bk.get(bk_name, {})
+        if outcome not in bk_outcomes:
             continue
+
+        c = bk_outcomes[outcome]
         if c["confidence"] < MIN_CONFIDENCE:
             continue
 
-        best = best_odds[outcome]
         odds = best["odds"]
         true_prob = c["consensus_prob"]
         confidence = c["confidence"]
         trust = best["trust_score"]
-        bk = best["bookmaker"]
 
         if trust < MIN_TRUST:
             continue
@@ -89,14 +85,14 @@ def evaluate_value(event_data: dict) -> list[ValueBet]:
 
         reasons = [
             f"EV {ev*100:.1f}%",
-            f"confidence {confidence:.2f}",
+            f"confidence {confidence:.2f} (без {bk_name})",
             f"trust {trust:.2f}",
             f"кэф {odds} vs честный {c['consensus_odds']}",
         ]
 
         value_bets.append(ValueBet(
             outcome=outcome,
-            bookmaker=bk,
+            bookmaker=bk_name,
             odds=odds,
             true_prob=true_prob,
             ev=round(ev, 4),

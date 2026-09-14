@@ -1,11 +1,8 @@
 """
-Парсер коэффициентов.
-На первом этапе — mock-источник для проверки конвейера.
-Реальный источник подставляется через fetch_raw().
+Парсер коэффициентов. Mock-источник.
 """
 
 import json
-import time
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Optional
@@ -38,65 +35,61 @@ class OddsEvent:
         return asdict(self)
 
 
+MOCK_DATA = {
+    "rpl_zenit_spartak_2026_09_15": {
+        "event_id": "rpl_zenit_spartak_2026_09_15",
+        "sport": "football", "league": "RPL",
+        "home": "Зенит", "away": "Спартак",
+        "kickoff_iso": "2026-09-15T19:00:00+03:00",
+        "bookmakers": [
+            {"name": "Винлайн",     "home": 1.85, "draw": 3.60, "away": 4.20, "over": 1.90, "under": 1.90, "line": 2.5},
+            {"name": "Фонбет",      "home": 1.80, "draw": 3.70, "away": 4.30, "over": 1.95, "under": 1.85, "line": 2.5},
+            {"name": "Лига Ставок", "home": 1.90, "draw": 3.50, "away": 4.10, "over": 1.88, "under": 1.92, "line": 2.5},
+            {"name": "Бет Бум",     "home": 1.83, "draw": 3.65, "away": 4.25, "over": 1.92, "under": 1.88, "line": 2.5},
+            {"name": "PARI",        "home": 1.87, "draw": 3.55, "away": 4.15, "over": 1.89, "under": 1.91, "line": 2.5},
+            {"name": "Марафон",     "home": 2.15, "draw": 3.90, "away": 3.60, "over": 2.10, "under": 1.78, "line": 2.5},
+        ],
+    },
+    "rpl_cska_lokomotiv_2026_09_15": {
+        "event_id": "rpl_cska_lokomotiv_2026_09_15",
+        "sport": "football", "league": "RPL",
+        "home": "ЦСКА", "away": "Локомотив",
+        "kickoff_iso": "2026-09-15T21:30:00+03:00",
+        "bookmakers": [
+            {"name": "Винлайн",     "home": 2.10, "draw": 3.40, "away": 3.60, "over": 1.95, "under": 1.85, "line": 2.5},
+            {"name": "Фонбет",      "home": 2.05, "draw": 3.45, "away": 3.70, "over": 1.90, "under": 1.90, "line": 2.5},
+            {"name": "Лига Ставок", "home": 2.15, "draw": 3.35, "away": 3.55, "over": 1.93, "under": 1.87, "line": 2.5},
+            {"name": "PARI",        "home": 2.08, "draw": 3.42, "away": 3.65, "over": 1.92, "under": 1.88, "line": 2.5},
+            {"name": "Бетсити",     "home": 2.12, "draw": 3.38, "away": 3.58, "over": 1.91, "under": 1.89, "line": 2.5},
+            {"name": "Марафон",     "home": 2.50, "draw": 3.50, "away": 3.10, "over": 2.15, "under": 1.72, "line": 2.5},
+        ],
+    },
+    "khl_ska_dynamo_2026_09_15": {
+        "event_id": "khl_ska_dynamo_2026_09_15",
+        "sport": "hockey", "league": "KHL",
+        "home": "СКА", "away": "Динамо М",
+        "kickoff_iso": "2026-09-15T19:30:00+03:00",
+        "bookmakers": [
+            {"name": "Винлайн",     "home": 1.75, "draw": None, "away": 4.20, "over": 1.85, "under": 1.95, "line": 4.5},
+            {"name": "Фонбет",      "home": 1.80, "draw": None, "away": 4.00, "over": 1.90, "under": 1.90, "line": 4.5},
+            {"name": "Лига Ставок", "home": 1.78, "draw": None, "away": 4.15, "over": 1.88, "under": 1.92, "line": 4.5},
+            {"name": "PARI",        "home": 1.82, "draw": None, "away": 3.95, "over": 1.87, "under": 1.93, "line": 4.5},
+            {"name": "Марафон",     "home": 1.65, "draw": None, "away": 5.00, "over": 2.20, "under": 1.70, "line": 4.5},
+        ],
+    },
+}
+
+
 class OddsParser:
     def __init__(self, timeout: int = 20):
         self.timeout = timeout
         self.session = requests.Session()
         self.session.trust_env = False
-        self.session.headers.update({
-            "User-Agent": (
-                "Mozilla/5.0 (X11; Linux x86_64) "
-                "AppleWebKit/537.36 Chrome/130 Safari/537.36"
-            ),
-            "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
-        })
-
-    def _cache_path(self, key: str) -> Path:
-        safe = "".join(c if c.isalnum() else "_" for c in key)
-        return CACHE_DIR / f"{safe}.json"
-
-    def _load_cache(self, key: str) -> Optional[dict]:
-        path = self._cache_path(key)
-        if not path.exists():
-            return None
-        if time.time() - path.stat().st_mtime > CACHE_TTL_SECONDS:
-            return None
-        try:
-            return json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
-            return None
-
-    def _save_cache(self, key: str, data: dict) -> None:
-        self._cache_path(key).write_text(
-            json.dumps(data, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
 
     def fetch_raw(self, event_id: str) -> dict:
-        """
-        Mock-источник. Заменить на Flashscore/Oddsportal.
-        """
-        cache_key = f"raw_{event_id}"
-        cached = self._load_cache(cache_key)
-        if cached:
-            return cached
-
-        mock = {
-            "event_id": event_id,
-            "sport": "football",
-            "league": "RPL",
-            "home": "Зенит",
-            "away": "Спартак",
-            "kickoff_iso": "2026-09-15T19:00:00+03:00",
-            "bookmakers": [
-                {"name": "Винлайн",     "home": 1.85, "draw": 3.60, "away": 4.20, "over": 1.90, "under": 1.90, "line": 2.5},
-                {"name": "Фонбет",      "home": 1.80, "draw": 3.70, "away": 4.30, "over": 1.95, "under": 1.85, "line": 2.5},
-                {"name": "Лига Ставок", "home": 1.90, "draw": 3.50, "away": 4.10, "over": 1.88, "under": 1.92, "line": 2.5},
-                {"name": "Бет Бум",     "home": 1.83, "draw": 3.65, "away": 4.25, "over": 1.92, "under": 1.88, "line": 2.5},
-                {"name": "PARI",        "home": 1.87, "draw": 3.55, "away": 4.15, "over": 1.89, "under": 1.91, "line": 2.5},
-            ],
-        }
-        self._save_cache(cache_key, mock)
+        mock = MOCK_DATA.get(event_id)
+        if mock is None:
+            raise ValueError(f"Unknown event_id: {event_id}")
         return mock
 
     def parse(self, event_id: str) -> list[OddsEvent]:
