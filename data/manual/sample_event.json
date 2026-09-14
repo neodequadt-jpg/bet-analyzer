@@ -1,0 +1,16 @@
+{
+  "event_id": "manual_test_001",
+  "sport": "football",
+  "league": "RPL",
+  "home": "Зенит",
+  "away": "Спартак",
+  "kickoff_iso": "2026-09-15T19:00:00+03:00",
+  "bookmakers": [
+    {"name": "Винлайн",     "home": 1.85, "draw": 3.60, "away": 4.20, "over": 1.90, "under": 1.90, "line": 2.5},
+    {"name": "Фонбет",      "home": 1.80, "draw": 3.70, "away": 4.30, "over": 1.95, "under": 1.85, "line": 2.5},
+    {"name": "Лига Ставок", "home": 1.90, "draw": 3.50, "away": 4.10, "over": 1.88, "under": 1.92, "line": 2.5},
+    {"name": "Бет Бум",     "home": 1.83, "draw": 3.65, "away": 4.25, "over": 1.92, "under": 1.88, "line": 2.5},
+    {"name": "PARI",        "home": 1.87, "draw": 3.55, "away": 4.15, "over": 1.89, "under": 1.91, "line": 2.5},
+    {"name": "Марафон",     "home": 2.15, "draw": 3.90, "away": 3.60, "over": 2.10, "under": 1.78, "line": 2.5}
+  ]
+}
