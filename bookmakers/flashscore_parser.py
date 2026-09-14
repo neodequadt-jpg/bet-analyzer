@@ -170,3 +170,43 @@ def parse_fixtures_html(html: str) -> list[dict]:
             "kickoff_text": time_el.get_text(strip=True) if time_el else None,
         })
     return out
+
+
+# --- Parsing: fixtures list from HTML ---
+from typing import Optional
+
+
+def parse_fixtures_html(html: str) -> list[dict]:
+    """
+    Извлекает список матчей из HTML страницы /fixtures/ или /results/.
+    Возвращает: [{match_id, mid, match_url, home, away, kickoff_text}].
+    """
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(html, "html.parser")
+    rows = soup.select("div.event__match[data-event-row='true']")
+
+    out: list[dict] = []
+    for row in rows:
+        row_id = row.get("id", "")
+        match_id = row_id.replace("g_1_", "", 1) if row_id.startswith("g_1_") else None
+
+        link = row.select_one("a.eventRowLink")
+        href = link.get("href") if link else None
+        mid = None
+        if href and "mid=" in href:
+            mid = href.split("mid=", 1)[1].split("&", 1)[0]
+
+        home_el = row.select_one(".event__homeParticipant span")
+        away_el = row.select_one(".event__awayParticipant span")
+        time_el = row.select_one(".event__stageTime")
+
+        out.append({
+            "match_id": match_id,
+            "mid": mid,
+            "match_url": href,
+            "home": home_el.get_text(strip=True) if home_el else None,
+            "away": away_el.get_text(strip=True) if away_el else None,
+            "kickoff_text": time_el.get_text(strip=True) if time_el else None,
+        })
+    return out
