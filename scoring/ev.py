@@ -8,6 +8,16 @@ MIN_EV = 0.03
 MIN_CONFIDENCE = 0.5
 MIN_TRUST = 0.7
 
+# Реалистичные потолки EV по видам спорта.
+# 2-way рынки (KHL, теннис) имеют высокую маржу — consensus
+# завышает EV. Ограничиваем разумными порогами.
+MAX_EV_BY_SPORT = {
+    "football": 0.25,
+    "hockey":   0.15,
+    "basketball": 0.15,
+    "tennis":   0.15,
+}
+
 
 @dataclass
 class ValueBet:
@@ -78,6 +88,12 @@ def evaluate_value(event_data):
 
         ev = true_prob * odds - 1.0
         if ev < MIN_EV:
+            continue
+
+        # Cap по виду спорта
+        sport = event_data.get("event", {}).get("sport", "football")
+        max_ev = MAX_EV_BY_SPORT.get(sport, 0.15)
+        if ev > max_ev:
             continue
 
         kelly = _kelly(true_prob, odds)
