@@ -108,6 +108,26 @@ def main():
                 all_results.append(r)
                 total_value_bets += len(r["value_bets"])
 
+    elif mode == "hybrid":
+        # Fonbet API + manual → сгруппированные матчи
+        fonbet_events = fetch_rpl_odds(force=True)
+        print(f"[hybrid] fonbet: {len(fonbet_events)} raw events")
+
+        manual_events = []
+        for eid in list_manual_events():
+            manual_events.extend(parse_manual(eid))
+        print(f"[hybrid] manual: {len(manual_events)} raw events")
+
+        groups = merge(fonbet_events, manual_events)
+        print(f"[hybrid] grouped into {len(groups)} matches")
+        for group in groups:
+            label = group_label(group)
+            eid = group[0].event_id if group else "?"
+            r = process_event(eid, group, "hybrid")
+            if r:
+                all_results.append(r)
+                total_value_bets += len(r["value_bets"])
+
     else:  # mock
         parser = OddsParser()
         for event_id in MOCK_DATA:
