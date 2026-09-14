@@ -21,3 +21,7 @@ Thumbs.db
 # Runtime data
 data/runs/
 data/cache/
+
+# Secrets
+.env.bot
+.env.bot.local
