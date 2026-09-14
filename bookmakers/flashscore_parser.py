@@ -210,3 +210,62 @@ def parse_fixtures_html(html: str) -> list[dict]:
             "kickoff_text": time_el.get_text(strip=True) if time_el else None,
         })
     return out
+
+
+# --- Parsing: odds list from detail HTML ---
+def parse_odds_html(html: str) -> list[dict]:
+    """
+    Извлекает список коэффициентов 1X2 из HTML страницы detail + #/odds-comparison/1x2/full-time.
+    Возвращает: [{bookmaker, bookmaker_id, odds_home, odds_draw, odds_away}].
+    """
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(html, "html.parser")
+    # Каждый ряд БК: div.odds с вложенным wclOddsRow
+    rows = soup.select("div.odds")
+
+    out: list[dict] = []
+    for row in rows:
+        logo = row.select_one("[data-analytics-bookmaker-id]")
+        if not logo:
+            continue
+        bk_id = logo.get("data-analytics-bookmaker-id")
+
+        # имя: <a title="Lilibet"> или <img alt="Lilibet">
+        name_el = row.select_one("a[title]") or row.select_one("img[alt]")
+        if not name_el:
+            continue
+        name = name_el.get("title") or name_el.get("alt")
+        if not name:
+            continue
+
+        cells = row.select(".wcl-oddsCell_qJ5md")
+        if len(cells) < 3:
+            continue
+
+        values: list[float | None] = []
+        for c in cells[:3]:
+            classes = " ".join(c.get("class", []))
+            if "wcl-empty" in classes or "wcl-removed" in classes:
+                values.append(None)
+                continue
+            val_el = c.select_one('[data-testid="wcl-oddsValue"]')
+            if not val_el:
+                values.append(None)
+                continue
+            try:
+                values.append(float(val_el.get_text(strip=True)))
+            except ValueError:
+                values.append(None)
+
+        if all(v is None for v in values):
+            continue
+
+        out.append({
+            "bookmaker": name,
+            "bookmaker_id": bk_id,
+            "odds_home": values[0],
+            "odds_draw": values[1],
+            "odds_away": values[2],
+        })
+    return out
