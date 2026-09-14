@@ -1,28 +1,42 @@
 """
 Manual source: чтение коэффициентов из data/manual/*.json.
-Используется для верификации конвейера, пока внешние API недоступны.
+Event ID берётся из содержимого JSON, не из имени файла.
 """
-
 import json
 from pathlib import Path
-
 from bookmakers.parser import OddsEvent
-
 
 MANUAL_DIR = Path("data/manual")
 
 
 def list_manual_events() -> list[str]:
+    """Возвращает список event_id из содержимого JSON-файлов."""
     if not MANUAL_DIR.exists():
         return []
-    return sorted(p.stem for p in MANUAL_DIR.glob("*.json"))
+    event_ids = []
+    for path in sorted(MANUAL_DIR.glob("*.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            eid = data.get("event_id")
+            if eid:
+                event_ids.append(eid)
+        except Exception as e:
+            print(f"[manual] skip {path.name}: {e}")
+    return event_ids
 
 
 def load_manual(event_id: str) -> dict:
-    path = MANUAL_DIR / f"{event_id}.json"
-    if not path.exists():
-        raise FileNotFoundError(f"manual file not found: {path}")
-    return json.loads(path.read_text(encoding="utf-8"))
+    """Ищет файл, содержащий указанный event_id."""
+    if not MANUAL_DIR.exists():
+        raise FileNotFoundError(f"manual dir not found: {MANUAL_DIR}")
+    for path in sorted(MANUAL_DIR.glob("*.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if data.get("event_id") == event_id:
+                return data
+        except Exception:
+            continue
+    raise FileNotFoundError(f"event_id not found in manual: {event_id}")
 
 
 def parse_manual(event_id: str) -> list[OddsEvent]:
