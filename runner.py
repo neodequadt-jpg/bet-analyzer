@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bookmakers.parser import OddsParser, MOCK_DATA
 from bookmakers.manual_source import list_manual_events, parse_manual
 from bookmakers.fonbet_api import fetch_rpl_odds
+from bookmakers.normalizer import merge, group_label
 from market.consensus import evaluate_event
 from scoring.ev import evaluate_value
 
@@ -83,6 +84,26 @@ def main():
         # Один БК = консенсус невозможен, но валидируем данные
         for e in events:
             r = process_event(e.event_id, [e], "fonbet")
+            if r:
+                all_results.append(r)
+                total_value_bets += len(r["value_bets"])
+
+    elif mode == "hybrid":
+        # Fonbet API + manual → сгруппированные матчи
+        fonbet_events = fetch_rpl_odds(force=True)
+        print(f"[hybrid] fonbet: {len(fonbet_events)} raw events")
+
+        manual_events = []
+        for eid in list_manual_events():
+            manual_events.extend(parse_manual(eid))
+        print(f"[hybrid] manual: {len(manual_events)} raw events")
+
+        groups = merge(fonbet_events, manual_events)
+        print(f"[hybrid] grouped into {len(groups)} matches")
+        for group in groups:
+            label = group_label(group)
+            eid = group[0].event_id if group else "?"
+            r = process_event(eid, group, "hybrid")
             if r:
                 all_results.append(r)
                 total_value_bets += len(r["value_bets"])
