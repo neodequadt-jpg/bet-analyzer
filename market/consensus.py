@@ -34,13 +34,29 @@ def _remove_margin(probs: list[float]) -> list[float]:
 
 
 def _consensus_from_subset(subset, outcome):
+    """
+    Поддерживает:
+    - 3-way рынок (football): home / draw / away
+    - 2-way рынок (hockey, tennis): home / away
+    """
     bk_probs = []
     for h, d, a in subset.values():
-        if h is None or d is None or a is None:
+        if h is None or a is None:
             continue
-        raw = [_implied_prob(h), _implied_prob(d), _implied_prob(a)]
-        normalized = _remove_margin(raw)
-        idx = {"home": 0, "draw": 1, "away": 2}[outcome]
+
+        if d is None:
+            # 2-way рынок
+            if outcome == "draw":
+                continue
+            raw = [_implied_prob(h), _implied_prob(a)]
+            normalized = _remove_margin(raw)
+            idx = {"home": 0, "away": 1}[outcome]
+        else:
+            # 3-way рынок
+            raw = [_implied_prob(h), _implied_prob(d), _implied_prob(a)]
+            normalized = _remove_margin(raw)
+            idx = {"home": 0, "draw": 1, "away": 2}[outcome]
+
         bk_probs.append(normalized[idx])
 
     if not bk_probs:
