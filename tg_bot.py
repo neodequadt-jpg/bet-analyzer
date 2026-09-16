@@ -17,6 +17,10 @@ import sys
 import time
 
 import requests
+import logging
+# urllib3/requests must never log full request URLs (they contain BOT_TOKEN)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("requests").setLevel(logging.WARNING)
 
 # Fix: project packages (bookmakers.*, market.*, scoring.*, ai.*) must be
 # importable without PYTHONPATH.
