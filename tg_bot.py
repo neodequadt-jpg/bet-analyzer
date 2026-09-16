@@ -36,14 +36,23 @@ from ai.analyst import ValueBetAnalyst
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 API_BASE = "https://api.telegram.org/bot" + BOT_TOKEN
 
-TG_ADMIN_ID = None
-try:
-    _admin = os.environ.get("TG_ADMIN_ID", "").strip()
-    if _admin:
-        TG_ADMIN_ID = int(_admin)
-except ValueError:
-    print("[tg_bot] invalid TG_ADMIN_ID, whitelist disabled", file=sys.stderr)
-    TG_ADMIN_ID = None
+def _parse_admin_ids(raw: str) -> set:
+    """Parse a comma-separated TG_ADMIN_ID into a set of chat_ids."""
+    out = set()
+    for part in (raw or "").split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            out.add(int(part))
+        except ValueError:
+            pass
+    return out
+
+
+TG_ADMIN_IDS = _parse_admin_ids(os.environ.get("TG_ADMIN_ID", ""))
+# backward-compat alias for any external references
+TG_ADMIN_ID = next(iter(TG_ADMIN_IDS)) if len(TG_ADMIN_IDS) == 1 else None
 
 START_TIME = time.time()
 HTTP_TIMEOUT = 8
@@ -64,7 +73,8 @@ WELCOME_TEXT = (
     "/value \u2014 run pipeline, show value bets\n"
     "/express \u2014 AI express from value bets\n"
     "/report \u2014 AI analyst report on the top bet\n"
-    "/status \u2014 bot & pipeline status"
+    "/status \u2014 bot & pipeline status\n"
+    "/whoami \u2014 print your chat_id"
 )
 
 OUTCOME_LABELS = {"home": "home", "draw": "draw", "away": "away"}
@@ -205,23 +215,71 @@ def _event_teams(event) -> tuple:
     return str(event), ""
 
 
-def format_express(express: dict) -> str:
-    """Render an ExpressBuilder result as plain human-readable HTML."""
+SPORT_EMOJI = {
+    "football": "⚽",
+    "hockey": "🏒",
+    "basketball": "🏀",
+    "tennis": "🎾",
+}
+
+
+def _human_kickoff(raw) -> str:
+    """Unix ts (digits) or ISO 8601 → 'DD.MM HH:MM' or '' if unparsable."""
+    if raw is None or raw == "":
+        return ""
+    s = str(raw).strip()
+    if s.isdigit():
+        try:
+            from datetime import datetime
+            return datetime.fromtimestamp(int(s)).strftime("%d.%m %H:%M")
+        except (ValueError, OSError):
+            return s
+    # ISO-like: '2026-09-15T19:00:00+03:00'
+    if "T" in s:
+        return s[:16].replace("T", " ")
+    return s
+
+
+def _sport_emoji(sport) -> str:
+    return SPORT_EMOJI.get(str(sport or "").lower(), "")
+
+
+def format_express(express: dict, events_meta: dict | None = None) -> str:
+    """Render an ExpressBuilder result as plain human-readable HTML.
+
+    events_meta is optional (backward compatible): when provided, each leg's
+    sport emoji and kickoff time are looked up by the "Home vs Away" label.
+    """
     legs = express.get("legs") or []
     if not legs and express.get("reason") is not None:
         return "\U0001F6AB Экспресс не собран: " + esc(express["reason"])
     if "error" in express:
         return "\u26A0\uFE0F Ошибка: " + esc(express["error"])
 
+    # Map "Home vs Away" label -> meta dict, so AI legs (which carry the label
+    # string, not an event_id) can be enriched with sport/kickoff.
+    meta_by_label = {}
+    for _eid, m in (events_meta or {}).items():
+        label = (str(m.get("home", "")) + " vs " + str(m.get("away", ""))).strip()
+        meta_by_label[label] = m
+
     parts = [
         f"\U0001F3AF <b>ЭКСПРЕСС</b> ({len(legs)} исходов)",
         "",
     ]
     for idx, leg in enumerate(legs, start=1):
+        event_str = str(leg.get("event") or "")
         home, away = _event_teams(leg.get("event"))
         outcome = _human_outcome(leg.get("outcome"), home, away)
+        meta = meta_by_label.get(event_str.strip())
+        sport = _sport_emoji(meta.get("sport")) if meta else ""
+        kickoff = _human_kickoff(meta.get("kickoff")) if meta else ""
+        head = (sport + " " if sport else "") + "<b>" + esc(event_str) + "</b>"
+        if kickoff:
+            head += " (" + kickoff + ")"
+        head += " \u2014 " + esc(outcome)
         parts.append(
-            f"{idx}. <b>{esc(home)} vs {esc(away)}</b> \u2014 {esc(outcome)}\n"
+            f"{idx}. {head}\n"
             f"   @ {esc(leg.get('bookmaker', '?'))}  <b>{esc(leg.get('odds', '?'))}</b>"
             f"  (deal {esc(leg.get('deal_score', '?'))})"
         )
@@ -321,6 +379,8 @@ def cmd_express() -> str:
             "home": ev["home"],
             "away": ev["away"],
             "league": ev["league"],
+            "sport": ev.get("sport", ""),
+            "kickoff": ev.get("kickoff", ""),
         }
         # value-bets (strict)
         for vb in item["value_bets"]:
@@ -352,7 +412,7 @@ def cmd_express() -> str:
     fallback.sort(key=lambda x: x["deal_score"], reverse=True)
 
     express = ExpressBuilder().build(all_vbs, events_meta, fallback_candidates=fallback)
-    return format_express(express)
+    return format_express(express, events_meta)
 
 def cmd_report() -> str:
     results = build_pipeline()
@@ -450,9 +510,15 @@ def handle(update):
     chat_id = chat.get("id")
     if chat_id is None:
         return
-    if TG_ADMIN_ID is not None and chat_id != TG_ADMIN_ID:
+    # /whoami always allowed — lets new users find their chat_id
+    text_raw = (message.get("text") or "").strip()
+    cmd = text_raw.split()[0].split("@")[0].lower() if text_raw else ""
+    if cmd == "/whoami":
+        send_message(chat_id, "Your chat_id: <code>" + str(chat_id) + "</code>")
         return
-    text = (message.get("text") or "").strip()
+    if TG_ADMIN_IDS and chat_id not in TG_ADMIN_IDS:
+        return
+    text = text_raw
     if not text:
         return
     command = text.split()[0].split("@")[0].lower()
@@ -504,8 +570,8 @@ def main():
         sys.exit(1)
 
     print("[tg_bot] starting, polling api.telegram.org ...")
-    if TG_ADMIN_ID is not None:
-        print(f"[tg_bot] chat whitelist: {TG_ADMIN_ID}")
+    if TG_ADMIN_IDS:
+        print(f"[tg_bot] chat whitelist: {sorted(TG_ADMIN_IDS)}")
 
     warmup()
 

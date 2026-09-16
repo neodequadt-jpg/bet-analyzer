@@ -103,6 +103,18 @@ def test_format_express_error():
     assert "Ошибка: boom" in result
 
 
+def test_format_express_shows_sport_and_time():
+    express = {"legs": [{"event": "A vs B", "outcome": "home",
+                         "bookmaker": "x", "odds": 2.0, "deal_score": 50}],
+               "total_odds": 2.0, "total_ev": 0.0, "stake_pct": 1.0,
+               "rationale": "r"}
+    meta = {"m1": {"home": "A", "away": "B",
+                   "sport": "football", "kickoff": "1789580700"}}
+    out = tg_bot.format_express(express, meta)
+    assert "⚽" in out
+    assert "15.09" in out or "16.09" in out  # depends on TZ
+
+
 # ---------------------------------------------------------------------------
 # get_updates / send_message / warmup / backoff
 # ---------------------------------------------------------------------------
