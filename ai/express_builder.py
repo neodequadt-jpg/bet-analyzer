@@ -63,8 +63,9 @@ class ExpressBuilder:
         fallback_candidates: if value-bets < 2, use these (best-odds from consensus)
         """
         value_candidates = self._filter_candidates(value_bets)
+        value_event_ids = {vb.get("event_id") for vb in value_candidates if vb.get("event_id")}
 
-        if len(value_candidates) >= 2:
+        if len(value_candidates) >= 2 and len(value_event_ids) >= 2:
             candidates = value_candidates
             mode = "value"
         elif fallback_candidates and len(fallback_candidates) >= 2:
@@ -72,7 +73,7 @@ class ExpressBuilder:
             mode = "consensus"
             print("[express_builder] fallback: consensus picks (" + str(len(candidates)) + ")", flush=True)
         else:
-            return {"legs": [], "reason": "insufficient candidates"}
+            return {"legs": [], "reason": "insufficient value-bets"}
 
         headers = {"Content-Type": "application/json"}
         if self.api_key:
@@ -91,5 +92,32 @@ class ExpressBuilder:
         if r.status_code != 200:
             raise RuntimeError("OmniRoute HTTP " + str(r.status_code) + ": " + r.text[:300])
         data = r.json()
-        content = data["choices"][0]["message"].get("content", "").strip()
-        return json.loads(content)
+        choice = (data.get("choices") or [{}])[0] if data.get("choices") else {}
+        message = choice.get("message") or {}
+        raw = message.get("content")
+
+        # Content may be None (provider flake), string, or already a dict
+        if raw is None:
+            # Some providers return content in reasoning_content, or empty
+            raw = message.get("reasoning_content") or ""
+
+        if isinstance(raw, dict):
+            # Already parsed JSON object
+            return raw
+
+        content = str(raw).strip()
+        if not content:
+            return {"legs": [], "reason": "empty AI response"}
+
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            # Try to find a JSON object inside the text
+            import re as _re
+            m = _re.search(r"\{.*\}", content, _re.DOTALL)
+            if m:
+                try:
+                    return json.loads(m.group(0))
+                except json.JSONDecodeError:
+                    pass
+            return {"legs": [], "reason": "AI returned non-JSON: " + content[:120]}

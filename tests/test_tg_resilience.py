@@ -206,3 +206,92 @@ def test_get_updates_retries_exhausted(monkeypatch):
     with pytest.raises(RuntimeError, match="502"):
         tg_bot.get_updates(offset=None, retries=3, pause=0.3)
     assert calls["n"] == 4  # 1 initial + 3 retries
+
+
+def test_build_falls_back_when_value_single_match(monkeypatch):
+    """2 value-bets in ONE match → fallback to consensus (not value mode)."""
+    from ai.express_builder import ExpressBuilder
+
+    captured = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured["payload"] = json
+        class R:
+            status_code = 200
+            def json(self):
+                return {"choices": [{"message": {"content": "{\"legs\": [], \"reason\": \"test\"}"}}]}
+        return R()
+
+    monkeypatch.setattr("ai.express_builder.requests.post", fake_post)
+
+    vb_same_match = [
+        {"event_id": "match_1", "outcome": "away", "bookmaker": "X", "odds": 5.0,
+         "ev": 0.05, "confidence": 0.8, "trust_score": 0.8, "deal_score": 60},
+        {"event_id": "match_1", "outcome": "draw", "bookmaker": "Y", "odds": 4.0,
+         "ev": 0.04, "confidence": 0.8, "trust_score": 0.8, "deal_score": 60},
+    ]
+    fallback = [
+        {"event_id": "match_2", "outcome": "home", "bookmaker": "consensus",
+         "odds": 2.0, "ev": 0.0, "confidence": 0.8, "trust_score": 0.9, "deal_score": 80},
+        {"event_id": "match_3", "outcome": "away", "bookmaker": "consensus",
+         "odds": 2.5, "ev": 0.0, "confidence": 0.8, "trust_score": 0.9, "deal_score": 80},
+    ]
+    b = ExpressBuilder()
+    b.build(vb_same_match, {"match_2": {"home": "A", "away": "B", "league": "L"}},
+            fallback_candidates=fallback)
+
+    # Assert: fallback was used, payload's system prompt is the consensus one
+    sys_content = captured["payload"]["messages"][0]["content"]
+    assert "consensus" in sys_content.lower() or "рыночный" in sys_content.lower()
+
+
+def test_build_handles_none_content(monkeypatch):
+    """Provider flake: message.content is None → no crash, dict returned."""
+    from ai.express_builder import ExpressBuilder
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        class R:
+            status_code = 200
+            def json(self):
+                return {"choices": [{"message": {"content": None}}]}
+        return R()
+
+    monkeypatch.setattr("ai.express_builder.requests.post", fake_post)
+
+    vb = [
+        {"event_id": "match_1", "outcome": "away", "bookmaker": "X", "odds": 5.0,
+         "ev": 0.05, "confidence": 0.8, "trust_score": 0.8, "deal_score": 60},
+        {"event_id": "match_2", "outcome": "draw", "bookmaker": "Y", "odds": 4.0,
+         "ev": 0.04, "confidence": 0.8, "trust_score": 0.8, "deal_score": 60},
+    ]
+    b = ExpressBuilder()
+    result = b.build(vb, {"match_1": {"home": "A", "away": "B"}, "match_2": {"home": "C", "away": "D"}})
+
+    assert isinstance(result, dict)
+    assert "reason" in result or "legs" in result
+
+
+def test_build_handles_non_json_content(monkeypatch):
+    """Provider returned plain text → graceful dict with non-JSON reason."""
+    from ai.express_builder import ExpressBuilder
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        class R:
+            status_code = 200
+            def json(self):
+                return {"choices": [{"message": {"content": "Sorry, I can't help"}}]}
+        return R()
+
+    monkeypatch.setattr("ai.express_builder.requests.post", fake_post)
+
+    vb = [
+        {"event_id": "match_1", "outcome": "away", "bookmaker": "X", "odds": 5.0,
+         "ev": 0.05, "confidence": 0.8, "trust_score": 0.8, "deal_score": 60},
+        {"event_id": "match_2", "outcome": "draw", "bookmaker": "Y", "odds": 4.0,
+         "ev": 0.04, "confidence": 0.8, "trust_score": 0.8, "deal_score": 60},
+    ]
+    b = ExpressBuilder()
+    result = b.build(vb, {"match_1": {"home": "A", "away": "B"}, "match_2": {"home": "C", "away": "D"}})
+
+    assert isinstance(result, dict)
+    assert "non-JSON" in result.get("reason", "")
