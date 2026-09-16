@@ -29,6 +29,7 @@ from market.consensus import evaluate_event
 from scoring.ev import evaluate_value
 from ai.express_builder import ExpressBuilder
 from ai.analyst import ValueBetAnalyst
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # 1. Config
@@ -64,6 +65,14 @@ MAX_MESSAGE_LEN = 4000
 BACKOFF_INITIAL = 3
 BACKOFF_MAX = 60
 
+# --- AI chat (universal sports-betting prompt) ---
+_PROMPT_PATH = Path(__file__).parent / "prompts" / "sports_betting_ru.txt"
+CHAT_SYSTEM_PROMPT = _PROMPT_PATH.read_text(encoding="utf-8") if _PROMPT_PATH.exists() else ""
+OMNI_CHAT_URL = "http://127.0.0.1:20128/v1/chat/completions"
+OMNI_CHAT_MODEL = "oc/big-pickle"
+CHAT_HISTORY = {}
+CHAT_HISTORY_MAX = 12
+
 WELCOME_TEXT = (
     "<b>\U0001F9E0 BET-ANALYZER bot</b>\n"
     "Pipeline: Fonbet + manual \u2192 consensus \u2192 EV \u2192 value bets.\n\n"
@@ -74,7 +83,11 @@ WELCOME_TEXT = (
     "/express \u2014 AI express from value bets\n"
     "/report \u2014 AI analyst report on the top bet\n"
     "/status \u2014 bot & pipeline status\n"
-    "/whoami \u2014 print your chat_id"
+    "/whoami \u2014 print your chat_id\n"
+    "/reset \u2014 clear AI chat history\n"
+    "/prompt \u2014 show active system prompt\n"
+    "\n"
+    "\u0418\u043b\u0438 \u043f\u0440\u043e\u0441\u0442\u043e \u043d\u0430\u043f\u0438\u0448\u0438 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u2014 AI-\u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043d\u0442 \u043e\u0442\u0432\u0435\u0442\u0438\u0442.\n"
 )
 
 OUTCOME_LABELS = {"home": "home", "draw": "draw", "away": "away"}
@@ -487,6 +500,34 @@ def cmd_status() -> str:
     return "\n".join(lines)
 
 
+def ai_chat(chat_id, user_text: str) -> str:
+    """Free-text AI chat via OmniRoute with universal sports-betting prompt."""
+    hist = CHAT_HISTORY.setdefault(chat_id, [])
+    messages = []
+    if CHAT_SYSTEM_PROMPT:
+        messages.append({"role": "system", "content": CHAT_SYSTEM_PROMPT})
+    messages.extend(hist[-CHAT_HISTORY_MAX:])
+    messages.append({"role": "user", "content": user_text})
+    payload = {
+        "model": OMNI_CHAT_MODEL,
+        "messages": messages,
+        "temperature": 0.4,
+        "max_tokens": 1200,
+    }
+    r = requests.post(OMNI_CHAT_URL, json=payload, timeout=90)
+    r.raise_for_status()
+    data = r.json()
+    choices = data.get("choices") or []
+    content = ""
+    if choices:
+        content = (choices[0].get("message") or {}).get("content") or ""
+    content = content.strip() or "(пустой ответ)"
+    hist.append({"role": "user", "content": user_text})
+    hist.append({"role": "assistant", "content": content})
+    del hist[:-CHAT_HISTORY_MAX]
+    return content
+
+
 def dispatch(command: str) -> str:
     if command in ("/start", "/help"):
         return WELCOME_TEXT
@@ -522,6 +563,22 @@ def handle(update):
     if not text:
         return
     command = text.split()[0].split("@")[0].lower()
+    # --- AI chat extensions ---
+    if command == "/reset":
+        CHAT_HISTORY.pop(chat_id, None)
+        send_message(chat_id, "\u2705 \u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0434\u0438\u0430\u043b\u043e\u0433\u0430 \u0441 AI \u043e\u0447\u0438\u0449\u0435\u043d\u0430.")
+        return
+    if command == "/prompt":
+        body = CHAT_SYSTEM_PROMPT[:4000] if CHAT_SYSTEM_PROMPT else "\u041f\u0440\u043e\u043c\u043f\u0442 \u043d\u0435 \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d."
+        send_message(chat_id, body)
+        return
+    if not text.startswith("/"):
+        try:
+            reply = ai_chat(chat_id, text)
+        except Exception as e:
+            reply = "\u26A0\uFE0F AI error: " + esc(str(e))[:400]
+        send_message(chat_id, reply)
+        return
     try:
         reply = dispatch(command)
     except Exception as e:
