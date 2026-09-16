@@ -15,6 +15,7 @@ import json
 import os
 import sys
 import time
+from datetime import datetime, timedelta, timezone
 
 import requests
 import logging
@@ -27,6 +28,7 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from bookmakers.fonbet_api import fetch_rpl_odds
+from bookmakers.fonbet_extended import fetch_events_by_sport, resolve_sport
 from bookmakers.manual_source import list_manual_events, parse_manual
 from bookmakers.normalizer import merge
 from market.consensus import evaluate_event
@@ -83,6 +85,9 @@ OMNI_CHAT_MODEL = "oc/big-pickle"
 CHAT_HISTORY = {}
 CHAT_HISTORY_MAX = 12
 
+# argv for /live set by handle()/_handle_callback() before dispatch (see D4)
+_LAST_LIVE_ARGV: list = []
+
 WELCOME_TEXT = (
     "<b>\U0001F9E0 BET-ANALYZER bot</b>\n"
     "Pipeline: Fonbet + manual \u2192 consensus \u2192 EV \u2192 value bets.\n\n"
@@ -92,6 +97,7 @@ WELCOME_TEXT = (
     "/value \u2014 run pipeline, show value bets\n"
     "/express \u2014 AI express from value bets\n"
     "/report \u2014 AI analyst report on the top bet\n"
+    "/live <sport> <hours> \u2014 upcoming matches (tt/football/hockey/tennis/esports)\n"
     "/status \u2014 bot & pipeline status\n"
     "/whoami \u2014 print your chat_id\n"
     "/reset \u2014 clear AI chat history\n"
@@ -109,6 +115,9 @@ _MAIN_KEYBOARD = {
         [
             {"text": "\U0001F4C4 Report",  "callback_data": "/report"},
             {"text": "\u2139\ufe0f Status", "callback_data": "/status"},
+        ],
+        [
+            {"text": "\U0001F3BE Live TT", "callback_data": "/live tt 1"},
         ],
     ],
 }
@@ -366,6 +375,83 @@ def build_pipeline():
 # ---------------------------------------------------------------------------
 # 3. Commands
 # ---------------------------------------------------------------------------
+def _format_odds(value) -> str:
+    """Render an odds value compactly ('1.4', '2', '2.55')."""
+    try:
+        return f"{float(value):g}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+_SPORT_NAMES = {
+    1: "\u0444\u0443\u0442\u0431\u043e\u043b",
+    2: "\u0445\u043e\u043a\u043a\u0435\u0439",
+    4: "\u0442\u0435\u043d\u043d\u0438\u0441",
+    3088: "\u043d\u0430\u0441\u0442\u043e\u043b\u044c\u043d\u044b\u0439 \u0442\u0435\u043d\u043d\u0438\u0441",
+    29086: "\u043a\u0438\u0431\u0435\u0440\u0441\u043f\u043e\u0440\u0442",
+}
+
+
+def cmd_live(argv: list[str]) -> str:
+    """/live <sport> <hours> — upcoming Fonbet matches with П1/П2 odds.
+
+    Defaults: sport=tt, hours=1. Hours are clamped to 1..4.
+    """
+    token = (argv[0] if argv and argv[0] else "tt").lower()
+    hours_raw = argv[1] if len(argv) > 1 and argv[1] else "1"
+    sport_id = resolve_sport(token)
+    if sport_id is None:
+        return (
+            "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435: "
+            "/live <sport> <hours>\n"
+            "sport: tt | football | hockey | tennis | esports "
+            "(\u043b\u0438\u0431\u043e \u043f\u043e-\u0440\u0443\u0441\u0441\u043a\u0438: "
+            "\u043d\u0430\u0441\u0442\u043e\u043b\u044c\u043d\u044b\u0439, "
+            "\u0444\u0443\u0442\u0431\u043e\u043b, \u0445\u043e\u043a\u043a\u0435\u0439, "
+            "\u0442\u0435\u043d\u043d\u0438\u0441, \u043a\u0438\u0431\u0435\u0440\u0441\u043f\u043e\u0440\u0442)\n"
+            "hours: 1..4"
+        )
+    try:
+        hours = int(hours_raw)
+    except ValueError:
+        hours = 1
+    hours = max(1, min(4, hours))
+
+    try:
+        events = fetch_events_by_sport(sport_id, hours=hours)
+    except Exception as e:
+        return "\u26A0\uFE0F error: " + esc(str(e))[:400]
+    if not events:
+        return f"\u041c\u0430\u0442\u0447\u0435\u0439 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e \u0432 \u0431\u043b\u0438\u0436\u0430\u0439\u0448\u0438\u0435 {hours} \u0447."
+
+    tz_msk = timezone(timedelta(hours=3))
+    now = time.time()
+    name = _SPORT_NAMES.get(sport_id, token)
+    lines = [
+        f"<b>\u26A1 /live {name} \u2014 \u0431\u043b\u0438\u0436\u0430\u0439\u0448\u0438\u0435 {hours} \u0447</b>",
+        "",
+    ]
+    for ev in events:
+        kickoff = datetime.fromtimestamp(ev["start_ts"], tz=tz_msk).strftime("%H:%M")
+        delta_min = max(0, int((ev["start_ts"] - now) // 60))
+        block = (
+            f"\U0001F3AF <b>{kickoff} \u041c\u0421\u041a</b> "
+            f"(\u0447\u0435\u0440\u0435\u0437 {delta_min} \u043c\u0438\u043d)\n"
+            f"   {esc(ev['home'])} vs {esc(ev['away'])}"
+        )
+        if ev.get("league"):
+            block += f"\n   {esc(ev['league'])}"
+        block += (
+            f"\n   \u041f1: <code>{_format_odds(ev['odds_home'])}</code> | "
+            f"\u041f2: <code>{_format_odds(ev['odds_away'])}</code>\n"
+            f"   [place={ev.get('place', '')}]"
+        )
+        lines.append(block)
+        lines.append("")
+    lines.append(f"\u0412\u0441\u0435\u0433\u043e: {len(events)} \u043c\u0430\u0442\u0447\u0435\u0439.")
+    return "\n".join(lines)
+
+
 def cmd_value() -> str:
     t0 = time.time()
     results = build_pipeline()
@@ -565,6 +651,10 @@ def dispatch(command: str) -> str:
         return cmd_report()
     if command == "/status":
         return cmd_status()
+    if command == "/live":
+        # argv was stored in _LAST_LIVE_ARGV by handle()/_handle_callback();
+        # empty list -> cmd_live falls back to defaults (tt, 1h)
+        return cmd_live(_LAST_LIVE_ARGV)
     return "Unknown command. Use /help to see available commands."
 
 
@@ -585,6 +675,9 @@ def _handle_callback(cb):
     if TG_ADMIN_IDS and chat_id not in TG_ADMIN_IDS:
         return
     command = data.split()[0].split("@")[0].lower()
+    global _LAST_LIVE_ARGV
+    if command == "/live":
+        _LAST_LIVE_ARGV = data.split()[1:]
     try:
         reply = dispatch(command)
     except Exception as e:
@@ -632,6 +725,9 @@ def handle(update):
             reply = "\u26A0\uFE0F AI error: " + esc(str(e))[:400]
         send_message(chat_id, reply)
         return
+    global _LAST_LIVE_ARGV
+    if command == "/live":
+        _LAST_LIVE_ARGV = text.split()[1:]
     try:
         reply = dispatch(command)
     except Exception as e:

@@ -49,16 +49,19 @@ class TestChunkText(unittest.TestCase):
 
 
 class TestMainKeyboard(unittest.TestCase):
-    def test_2x2_structure(self):
+    def test_keyboard_structure(self):
         rows = tg_bot._MAIN_KEYBOARD["inline_keyboard"]
-        self.assertEqual(len(rows), 2)
+        self.assertEqual(len(rows), 3)
         self.assertEqual(len(rows[0]), 2)
         self.assertEqual(len(rows[1]), 2)
+        self.assertEqual(len(rows[2]), 1)
 
     def test_callback_data(self):
         rows = tg_bot._MAIN_KEYBOARD["inline_keyboard"]
         datas = {b["callback_data"] for row in rows for b in row}
-        self.assertEqual(datas, {"/value", "/express", "/report", "/status"})
+        self.assertEqual(
+            datas, {"/value", "/express", "/report", "/status", "/live tt 1"}
+        )
 
 
 class TestDispatch(unittest.TestCase):
@@ -102,6 +105,29 @@ class TestHandleCallback(unittest.TestCase):
             })
         methods = [m for m, _ in calls]
         self.assertEqual(methods, ["answerCallbackQuery"])
+
+
+class TestLiveCommand(unittest.TestCase):
+    def test_resolve_sport_aliases(self):
+        self.assertEqual(tg_bot.resolve_sport("tt"), 3088)
+        self.assertEqual(tg_bot.resolve_sport("TT"), 3088)
+        self.assertEqual(tg_bot.resolve_sport("tabletennis"), 3088)
+        self.assertEqual(tg_bot.resolve_sport("football"), 1)
+        self.assertEqual(tg_bot.resolve_sport("\u0444\u0443\u0442\u0431\u043e\u043b"), 1)
+        self.assertEqual(tg_bot.resolve_sport("hockey"), 2)
+        self.assertEqual(tg_bot.resolve_sport("tennis"), 4)
+        self.assertEqual(tg_bot.resolve_sport("esports"), 29086)
+        self.assertIsNone(tg_bot.resolve_sport("nonsense"))
+        self.assertIsNone(tg_bot.resolve_sport(""))
+
+    def test_cmd_live_usage_hint(self):
+        out = tg_bot.cmd_live(["nonsense"])
+        self.assertIn("\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435", out)
+
+    def test_live_keyboard_present(self):
+        rows = tg_bot._MAIN_KEYBOARD["inline_keyboard"]
+        datas = [b["callback_data"] for row in rows for b in row]
+        self.assertIn("/live tt 1", datas)
 
 
 if __name__ == "__main__":
