@@ -49,6 +49,12 @@ START_TIME = time.time()
 HTTP_TIMEOUT = 30
 MAX_MESSAGE_LEN = 4000
 
+# Resilience: long-poll getUpdates(timeout=25) dies on a flapping proxy,
+# so we short-poll (timeout=1), warm the tunnel up front, and back off
+# exponentially (3s -> 60s) on repeated failures.
+BACKOFF_INITIAL = 3
+BACKOFF_MAX = 60
+
 WELCOME_TEXT = (
     "<b>\U0001F9E0 BET-ANALYZER bot</b>\n"
     "Pipeline: Fonbet + manual \u2192 consensus \u2192 EV \u2192 value bets.\n\n"
@@ -92,7 +98,7 @@ def tg_post(method, json_data=None) -> dict:
     return data
 
 
-def get_updates(offset=None, timeout=25) -> list:
+def get_updates(offset=None, timeout=1) -> list:
     params = {"timeout": timeout}
     if offset is not None:
         params["offset"] = offset
@@ -124,14 +130,27 @@ def chunk_text(text, max_len=MAX_MESSAGE_LEN) -> list:
     return chunks
 
 
-def send_message(chat_id, text, parse_mode="HTML"):
-    """Send possibly-long message; long text is split into chunks."""
+def send_message(chat_id, text, parse_mode="HTML", retries=3):
+    """Send possibly-long message; long text is split into chunks.
+
+    Each chunk is sent with up to `retries` attempts and growing pauses
+    (1.5s, 3.0s, ...) so the bot survives a flapping proxy; the last
+    error is re-raised.
+    """
     for chunk in chunk_text(text):
-        tg_post("sendMessage", {
+        payload = {
             "chat_id": chat_id,
             "text": chunk,
             "parse_mode": parse_mode,
-        })
+        }
+        for attempt in range(retries):
+            try:
+                tg_post("sendMessage", payload)
+                break
+            except Exception:
+                if attempt == retries - 1:
+                    raise
+                time.sleep(1.5 * (2 ** attempt))
 
 
 # ---------------------------------------------------------------------------
@@ -350,6 +369,37 @@ def handle(update):
     send_message(chat_id, reply)
 
 
+def warmup(max_pings=5, pause=1.0) -> int:
+    """Probe Telegram with getMe until the flapping tunnel answers.
+
+    Makes up to `max_pings` attempts with a `pause` second delay between
+    them. Returns the ping number of the first success (1..max_pings), or
+    max_pings if the tunnel never answered within the budget.
+    """
+    last_err = None
+    for n in range(1, max_pings + 1):
+        try:
+            tg_get("getMe")
+        except Exception as e:
+            last_err = e
+            if n < max_pings:
+                time.sleep(pause)
+            continue
+        print(f"[tg_bot] tunnel warm after {n} pings")
+        return n
+    print(
+        f"[tg_bot] tunnel NOT warm after {max_pings} pings ({last_err}); "
+        "continuing anyway",
+        file=sys.stderr,
+    )
+    return max_pings
+
+
+def next_backoff(current, max_backoff=BACKOFF_MAX) -> int:
+    """Grow the retry delay exponentially, capped at 60s (3->6->12->24->48->60)."""
+    return min(current * 2, max_backoff)
+
+
 def main():
     if not BOT_TOKEN:
         print(
@@ -363,14 +413,19 @@ def main():
     if TG_ADMIN_ID is not None:
         print(f"[tg_bot] chat whitelist: {TG_ADMIN_ID}")
 
+    warmup()
+
     offset = None
+    backoff = BACKOFF_INITIAL
     while True:
         try:
             updates = get_updates(offset)
         except Exception as e:
             print(f"[tg_bot] getUpdates failed: {e}", file=sys.stderr)
-            time.sleep(5)
+            time.sleep(backoff)
+            backoff = next_backoff(backoff)
             continue  # never crash the loop
+        backoff = BACKOFF_INITIAL  # reset on success
         for update in updates:
             try:
                 offset = update["update_id"] + 1
