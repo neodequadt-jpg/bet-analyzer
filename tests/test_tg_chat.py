@@ -5,6 +5,7 @@ Run: python3 tests/test_tg_chat.py
 """
 import os
 import sys
+import time
 import unittest
 from unittest import mock
 
@@ -104,7 +105,11 @@ class TestHandleCallback(unittest.TestCase):
                 "message": {"chat": {"id": 42}},
             })
         methods = [m for m, _ in calls]
-        self.assertEqual(methods, ["answerCallbackQuery"])
+        self.assertEqual(methods, ["answerCallbackQuery", "sendMessage"])
+        # friendly whitelist rejection message
+        text = calls[1][1]["text"]
+        self.assertIn("42", text)
+        self.assertIn("chat_id", text.lower())
 
 
 class TestLiveCommand(unittest.TestCase):
@@ -176,6 +181,49 @@ class TestNoRawAngleBrackets(unittest.TestCase):
 
     def test_cmd_live_tt_no_raw_angles(self):
         self._check("cmd_live tt 1", tg_bot.cmd_live(["tt", "1"]))
+
+
+class TestRateLimitAndRejection(unittest.TestCase):
+
+    def setUp(self):
+        tg_bot._RATE_BUCKET.clear()
+        tg_bot._RATE_WARN.clear()
+
+    def test_allows_first_capacity(self):
+        for i in range(20):
+            ok, _ = tg_bot._check_rate_limit(1)
+            self.assertTrue(ok, f"call {i+1} should pass")
+
+    def test_blocks_after_capacity(self):
+        for _ in range(20):
+            tg_bot._check_rate_limit(1)
+        ok, wait = tg_bot._check_rate_limit(1)
+        self.assertFalse(ok)
+        self.assertGreater(wait, 0.0)
+
+    def test_isolated_per_chat(self):
+        for _ in range(20):
+            tg_bot._check_rate_limit(1)
+        ok, _ = tg_bot._check_rate_limit(2)   # другая чат-комната
+        self.assertTrue(ok)
+
+    def test_refills_over_time(self):
+        tg_bot._RATE_BUCKET[1] = [0.0, time.monotonic() - 6.0]  # empty, 6s ago
+        ok, _ = tg_bot._check_rate_limit(1)   # 6 * 1/3 = 2 tokens refilled
+        self.assertTrue(ok)
+
+    def test_whoami_message_has_admin_hint(self):
+        calls = []
+        def fake_post(method, json_data=None):
+            calls.append((method, json_data))
+            return {"ok": True}
+        with mock.patch.object(tg_bot, "tg_post", fake_post):
+            tg_bot.handle({"message": {"chat": {"id": 42}, "text": "/whoami"}})
+        self.assertEqual(len(calls), 1)
+        text = calls[0][1]["text"]
+        self.assertIn("42", text)
+        self.assertIn("chat_id", text.lower())
+        self.assertTrue(("администратор" in text.lower()) or ("приглаш" in text.lower()))
 
 
 if __name__ == "__main__":

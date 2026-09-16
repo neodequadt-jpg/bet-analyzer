@@ -587,6 +587,49 @@ def fmt_uptime(total_secs) -> str:
     return f"{days}d {hours:02d}:{mins:02d}:{secs:02d}"
 
 
+# --- Rate limit (token bucket, per chat_id) ---
+_RATE_BUCKET: dict = {}   # chat_id -> [tokens, last_monotonic_ts]
+_RATE_WARN: dict = {}     # chat_id -> last_warn_monotonic_ts
+_RATE_CAPACITY: float = 20.0
+_RATE_REFILL_PER_SEC: float = _RATE_CAPACITY / 60.0   # 1 token per 3 sec
+_RATE_WARN_INTERVAL_SEC: float = 30.0
+
+def _check_rate_limit(chat_id, cost: float = 1.0):
+    """Token bucket. Returns (allowed: bool, retry_after_sec: float)."""
+    now = time.monotonic()
+    state = _RATE_BUCKET.get(chat_id)
+    if state is None:
+        state = [_RATE_CAPACITY, now]
+        _RATE_BUCKET[chat_id] = state
+    tokens, last = state
+    elapsed = max(0.0, now - last)
+    tokens = min(_RATE_CAPACITY, tokens + elapsed * _RATE_REFILL_PER_SEC)
+    state[1] = now
+    if tokens < cost:
+        state[0] = tokens
+        wait = (cost - tokens) / _RATE_REFILL_PER_SEC
+        return False, wait
+    state[0] = tokens - cost
+    return True, 0.0
+
+def _rate_check_and_warn(chat_id) -> bool:
+    """Returns True if request allowed. Sends warning if blocked (once per interval)."""
+    ok, wait = _check_rate_limit(chat_id)
+    if ok:
+        return True
+    now = time.monotonic()
+    last_warn = _RATE_WARN.get(chat_id, 0.0)
+    if now - last_warn >= _RATE_WARN_INTERVAL_SEC:
+        _RATE_WARN[chat_id] = now
+        try:
+            send_message(chat_id,
+                f"\u23F3 Слишком много запросов. "
+                f"Повторите через {int(wait) + 1} с.")
+        except Exception:
+            pass
+    return False
+
+
 def cmd_status() -> str:
     uptime_secs = int(time.time() - START_TIME)
     lines = ["<b>BOT STATUS</b>", f"uptime: {fmt_uptime(uptime_secs)}", ""]
@@ -746,6 +789,15 @@ def _handle_callback(cb):
     if chat_id is None or not data:
         return
     if TG_ADMIN_IDS and chat_id not in TG_ADMIN_IDS:
+        try:
+            send_message(chat_id,
+                "\U0001F512 Бот работает по приглашениям.\n"
+                f"Ваш chat_id: <code>{chat_id}</code>\n"
+                "Отправьте его администратору для доступа.")
+        except Exception:
+            pass
+        return
+    if not _rate_check_and_warn(chat_id):
         return
     command = data.split()[0].split("@")[0].lower()
     global _LAST_LIVE_ARGV
@@ -774,9 +826,20 @@ def handle(update):
     text_raw = (message.get("text") or "").strip()
     cmd = text_raw.split()[0].split("@")[0].lower() if text_raw else ""
     if cmd == "/whoami":
-        send_message(chat_id, "Your chat_id: <code>" + str(chat_id) + "</code>")
+        send_message(chat_id,
+            "Ваш chat_id: <code>" + str(chat_id) + "</code>\n\n"
+            "\u041e\u0442\u043f\u0440\u0430\u0432\u044c\u0442\u0435 \u0435\u0433\u043e "
+            "\u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0443, "
+            "\u0435\u0441\u043b\u0438 \u0431\u043e\u0442 \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442 "
+            "\u043f\u043e \u043f\u0440\u0438\u0433\u043b\u0430\u0448\u0435\u043d\u0438\u044f\u043c.")
         return
     if TG_ADMIN_IDS and chat_id not in TG_ADMIN_IDS:
+        send_message(chat_id,
+            "\U0001F512 Бот работает по приглашениям.\n"
+            f"Ваш chat_id: <code>{chat_id}</code>\n"
+            "Отправьте его администратору для доступа.")
+        return
+    if not _rate_check_and_warn(chat_id):
         return
     text = text_raw
     if not text:
