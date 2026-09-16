@@ -612,12 +612,85 @@ def cmd_status() -> str:
     return "\n".join(lines)
 
 
+_LIVE_SPORT_RE = {
+    3088: ("настольный", "настольн", "пинг", "пинг-понг", "tt", "тт",
+           "table tennis", "tabletennis"),
+    1:    ("футбол", "football", "фут"),
+    2:    ("хоккей", "hockey", "хок"),
+    4:    ("теннис", "tennis"),
+    29086: ("киберспорт", "esports", "кибер"),
+}
+_EXPRESS_KEYWORDS = ("экспресс", "экспрес", "собери", "подбери", "предложи",
+                     "прогноз", "сделай ставку", "поставь")
+
+def _detect_live_query(text: str):
+    """Return (sport_id, hours) if user wants live express, else None."""
+    if not text:
+        return None
+    low = text.lower()
+    if not any(k in low for k in _EXPRESS_KEYWORDS):
+        return None
+    sport_id = None
+    for sid, keys in _LIVE_SPORT_RE.items():
+        if any(k in low for k in keys):
+            sport_id = sid
+            break
+    if sport_id is None:
+        return None
+    m = re.search(r"(\d+)\s*(?:час|ч\b|hour|h\b)", low)
+    hours = int(m.group(1)) if m else 1
+    hours = max(1, min(4, hours))
+    return (sport_id, hours)
+
+def _format_live_context(events, hours):
+    """Format fetched events as a context block for the system prompt."""
+    if not events:
+        return ""
+    lines = [
+        f"АКТУАЛЬНЫЕ ДАННЫЕ (только что из Fonbet, ближайшие {hours} ч):",
+        "",
+    ]
+    for i, e in enumerate(events[:8], 1):
+        from datetime import datetime, timedelta, timezone
+        ts_msk = datetime.fromtimestamp(e["start_ts"],
+                                        tz=timezone(timedelta(hours=3)))
+        hhmm = ts_msk.strftime("%H:%M")
+        oh = e["odds_home"]
+        oa = e["odds_away"]
+        league = e.get("league") or ""
+        lines.append(
+            f"{i}. {hhmm} МСК — {e['home']} vs {e['away']} "
+            f"({league})"
+        )
+        lines.append(f"   П1={oh}, П2={oa}")
+    lines.append("")
+    lines.append(
+        "На основе этих данных собери 2-3 события для экспресса, если "
+        "они подходят. Указывай коэффициенты, оценку и риски. Если "
+        "данных недостаточно — скажи честно."
+    )
+    return "\n".join(lines)
+
+
 def ai_chat(chat_id, user_text: str) -> str:
     """Free-text AI chat via OmniRoute with universal sports-betting prompt."""
     hist = CHAT_HISTORY.setdefault(chat_id, [])
     messages = []
-    if CHAT_SYSTEM_PROMPT:
-        messages.append({"role": "system", "content": CHAT_SYSTEM_PROMPT})
+    system_text = CHAT_SYSTEM_PROMPT
+    try:
+        detected = _detect_live_query(user_text)
+        if detected:
+            sport_id, hours = detected
+            events = fetch_events_by_sport(sport_id, hours=hours, max_events=8)
+            ctx = _format_live_context(events, hours)
+            if ctx:
+                system_text = (system_text + "\n\n" + ctx).strip()
+    except Exception as _e:
+        # silent fallback to plain chat on live fetch errors
+        pass
+
+    if system_text:
+        messages.append({"role": "system", "content": system_text})
     messages.extend(hist[-CHAT_HISTORY_MAX:])
     messages.append({"role": "user", "content": user_text})
     payload = {

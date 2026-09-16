@@ -130,6 +130,26 @@ class TestLiveCommand(unittest.TestCase):
         self.assertIn("/live tt 1", datas)
 
 
+class TestLiveQueryDetection(unittest.TestCase):
+    def test_detect_tt_hour(self):
+        self.assertEqual(tg_bot._detect_live_query(
+            "Собери экспресс на ближайший час (настольный теннис)"),
+            (3088, 1))
+    def test_detect_tt_2h(self):
+        self.assertEqual(tg_bot._detect_live_query("экспресс на 2 часа tt"),
+            (3088, 2))
+    def test_detect_football_default_hours(self):
+        self.assertEqual(tg_bot._detect_live_query("собери экспресс на футбол"),
+            (1, 1))
+    def test_no_sport_no_trigger(self):
+        self.assertIsNone(tg_bot._detect_live_query("собери экспресс на час"))
+    def test_no_express_no_trigger(self):
+        self.assertIsNone(tg_bot._detect_live_query("что такое фора?"))
+    def test_hours_clamped(self):
+        self.assertEqual(tg_bot._detect_live_query("экспресс tt 10 часов"),
+            (3088, 4))
+
+
 class TestNoRawAngleBrackets(unittest.TestCase):
     """Regression: raw <sport>/<hours> in HTML text caused Telegram 400 Bad Request."""
 
