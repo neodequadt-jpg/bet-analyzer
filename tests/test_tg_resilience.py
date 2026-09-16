@@ -27,7 +27,9 @@ def test_chunk_text_short():
 
 
 def test_chunk_text_long():
-    text = "x" * 8000
+    lines = ["y" * 100 for _ in range(100)]
+    text = "\n".join(lines)
+    assert len(text) > tg_bot.MAX_MESSAGE_LEN
     chunks = tg_bot.chunk_text(text)
     assert len(chunks) > 1
     assert all(len(chunk) <= tg_bot.MAX_MESSAGE_LEN for chunk in chunks)
@@ -41,20 +43,64 @@ def test_chunk_text_no_split_lines():
     chunks = tg_bot.chunk_text(text)
     assert len(chunks) > 1
     assert all(len(chunk) <= tg_bot.MAX_MESSAGE_LEN for chunk in chunks)
-    # Boundaries: every non-last chunk must end exactly at a line end.
-    pos = 0
-    for chunk in chunks[:-1]:
-        assert text[pos + len(chunk)] == "\n"
-        pos += len(chunk) + 1
-    assert pos + len(chunks[-1]) == len(text)
-    # No mid-line splits: each chunk is a run of whole original lines.
+    # Lossless: "\n" separators are preserved at chunk ends.
+    assert "".join(chunks) == text
+    # Boundaries: every non-last chunk ends exactly at a line end (keeps the
+    # trailing separator); no mid-line splits: each chunk is a run of whole
+    # original lines.
     all_lines = text.split("\n")
     idx = 0
-    for chunk in chunks:
-        piece = chunk.split("\n")
+    for chunk in chunks[:-1]:
+        assert chunk.endswith("\n")
+        piece = chunk[:-1].split("\n")
         assert piece == all_lines[idx:idx + len(piece)]
         idx += len(piece)
-    assert idx == len(all_lines)
+    assert chunks[-1].split("\n") == all_lines[idx:]
+    assert idx + len(chunks[-1].split("\n")) == len(all_lines)
+
+
+def test_chunk_text_lossless():
+    lines = [f"line-{i:03d}-" + "x" * 50 for i in range(200)]
+    text = "\n".join(lines)
+    assert all(len(line) <= tg_bot.MAX_MESSAGE_LEN - 1 for line in lines)
+    chunks = tg_bot.chunk_text(text)
+    assert "".join(chunks) == text
+    assert all(len(chunk) <= tg_bot.MAX_MESSAGE_LEN for chunk in chunks)
+
+
+# ---------------------------------------------------------------------------
+# format_express
+# ---------------------------------------------------------------------------
+def test_format_express_human_readable():
+    express = {
+        "legs": [
+            {"event": "Спартак vs Зенит", "outcome": "home",
+             "bookmaker": "Fonbet", "odds": 2.10, "deal_score": 87},
+            {"event": "Динамо vs ЦСКА", "outcome": "away",
+             "bookmaker": "BetBoom", "odds": 3.40, "deal_score": 81},
+        ],
+        "total_odds": 7.14,
+        "total_ev": 0.12,
+        "stake_pct": 2.5,
+        "rationale": "Обе команды в форме.",
+    }
+    result = tg_bot.format_express(express)
+    assert "🎯" in result
+    assert "ЭКСПРЕСС" in result
+    assert "<pre>" not in result
+    assert "Итого" in result
+    assert "победа " in result
+
+
+def test_format_express_empty():
+    result = tg_bot.format_express({"legs": [], "reason": "insufficient value-bets"})
+    assert "не собран" in result
+    assert "insufficient value-bets" in result
+
+
+def test_format_express_error():
+    result = tg_bot.format_express({"error": "boom"})
+    assert "Ошибка: boom" in result
 
 
 # ---------------------------------------------------------------------------

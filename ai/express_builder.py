@@ -14,7 +14,7 @@ MIN_TRUST_SCORE = 0.7
 
 
 class ExpressBuilder:
-    def __init__(self, api_key=None, model=MODEL, timeout=90):
+    def __init__(self, api_key=None, model=MODEL, timeout=45):
         self.api_key = api_key or os.environ.get("OMNI_KEY") or ""
         self.model = model
         self.timeout = timeout

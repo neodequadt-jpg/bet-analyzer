@@ -121,26 +121,41 @@ def get_updates(offset=None, timeout=1, retries=3, pause=0.3) -> list:
 
 
 def chunk_text(text, max_len=MAX_MESSAGE_LEN) -> list:
-    """Split long text (>4000 chars) into chunks on line boundaries."""
+    """Split long text into chunks on line boundaries; lossless for normal lines.
+
+    When every line is no longer than max_len - 1, boundaries fall exactly at
+    line ends and each non-final chunk keeps its trailing "\\n" separator, so
+    "".join(chunks) == text. Lines longer than max_len - 1 are hard-split
+    (losslessness is not guaranteed for those lines alone).
+    """
     if len(text) <= max_len:
         return [text]
     chunks = []
-    buf = ""
+    buf = []
+    buf_len = 0
     for line in text.split("\n"):
-        if len(line) > max_len:
+        if len(line) > max_len - 1:
+            # Hard split: flush any pending lines (keeping their separator),
+            # then split the over-long line itself.
             if buf:
-                chunks.append(buf)
-                buf = ""
+                chunks.append("\n".join(buf) + "\n")
+                buf, buf_len = [], 0
             chunks.extend(line[i:i + max_len] for i in range(0, len(line), max_len))
             continue
-        candidate = line if not buf else buf + "\n" + line
-        if len(candidate) > max_len:
-            chunks.append(buf)
-            buf = line
+        if not buf:
+            buf, buf_len = [line], len(line)
+            continue
+        candidate_len = buf_len + 1 + len(line)
+        if candidate_len > max_len - 1:
+            # The next line would overflow: close this chunk at the current
+            # line end and carry the "\n" separator over to the chunk's end.
+            chunks.append("\n".join(buf) + "\n")
+            buf, buf_len = [line], len(line)
         else:
-            buf = candidate
+            buf.append(line)
+            buf_len = candidate_len
     if buf:
-        chunks.append(buf)
+        chunks.append("\n".join(buf))
     return chunks
 
 
@@ -165,6 +180,65 @@ def send_message(chat_id, text, parse_mode="HTML", retries=3):
                 if attempt == retries - 1:
                     raise
                 time.sleep(1.5 * (2 ** attempt))
+
+
+def _human_outcome(outcome, home, away) -> str:
+    """Map a machine outcome key to a human-readable Russian phrase."""
+    if outcome == "home":
+        return f"победа {home}"
+    if outcome == "draw":
+        return "ничья"
+    if outcome == "away":
+        return f"победа {away}"
+    if outcome == "over":
+        return "тотал больше"
+    if outcome == "under":
+        return "тотал меньше"
+    return str(outcome)
+
+
+def _event_teams(event) -> tuple:
+    """Split an event string "Home vs Away" into (home, away)."""
+    parts = str(event).split(" vs ")
+    if len(parts) >= 2:
+        return parts[0], parts[1]
+    return str(event), ""
+
+
+def format_express(express: dict) -> str:
+    """Render an ExpressBuilder result as plain human-readable HTML."""
+    legs = express.get("legs") or []
+    if not legs and express.get("reason") is not None:
+        return "\U0001F6AB Экспресс не собран: " + esc(express["reason"])
+    if "error" in express:
+        return "\u26A0\uFE0F Ошибка: " + esc(express["error"])
+
+    parts = [
+        f"\U0001F3AF <b>ЭКСПРЕСС</b> ({len(legs)} исходов)",
+        "",
+    ]
+    for idx, leg in enumerate(legs, start=1):
+        home, away = _event_teams(leg.get("event"))
+        outcome = _human_outcome(leg.get("outcome"), home, away)
+        parts.append(
+            f"{idx}. <b>{esc(home)} vs {esc(away)}</b> \u2014 {esc(outcome)}\n"
+            f"   @ {esc(leg.get('bookmaker', '?'))}  <b>{esc(leg.get('odds', '?'))}</b>"
+            f"  (deal {esc(leg.get('deal_score', '?'))})"
+        )
+        parts.append("")  # blank line between legs
+
+    parts += [
+        "\U0001F4CA <b>Итого:</b>",
+        f"\u2022 Коэффициент: {express.get('total_odds', '?')}",
+        f"\u2022 EV: {float(express.get('total_ev') or 0) * 100:.1f}% (рыночный консенсус)",
+        f"\u2022 Размер ставки: {express.get('stake_pct', '?')}% банкролла",
+        "",
+        "\U0001F4AC <b>Обоснование:</b>",
+        esc(express.get("rationale", "")),
+        "",
+        "\u26A0\uFE0F Это не value-ставка, а AI-выбор по рыночному консенсусу.",
+    ]
+    return "\n".join(parts)
 
 
 # ---------------------------------------------------------------------------
@@ -278,8 +352,7 @@ def cmd_express() -> str:
     fallback.sort(key=lambda x: x["deal_score"], reverse=True)
 
     express = ExpressBuilder().build(all_vbs, events_meta, fallback_candidates=fallback)
-    pretty = json.dumps(express, ensure_ascii=False, indent=2)
-    return "<pre>" + html.escape(pretty) + "</pre>"
+    return format_express(express)
 
 def cmd_report() -> str:
     results = build_pipeline()
@@ -332,15 +405,22 @@ def fmt_uptime(total_secs) -> str:
 def cmd_status() -> str:
     uptime_secs = int(time.time() - START_TIME)
     lines = ["<b>BOT STATUS</b>", f"uptime: {fmt_uptime(uptime_secs)}", ""]
-    try:
-        data = tg_get("getMe")
-        me = data.get("result") or {}
-        first = me.get("first_name") or me.get("username") or "?"
-        username = me.get("username", "?")
-        lines.append(f"bot: <b>{esc(first)}</b> @{esc(username)}")
-        lines.append(f"api ok: {bool(data.get('ok'))}")
-    except Exception as e:
-        lines.append(f"bot info: unavailable \u2014 {esc(str(e)[:120])}")
+    last_err = None
+    for _attempt in range(3):
+        try:
+            data = tg_get("getMe")
+            me = data.get("result") or {}
+            first = me.get("first_name") or me.get("username") or "?"
+            username = me.get("username", "?")
+            lines.append(f"bot: <b>{esc(first)}</b> @{esc(username)}")
+            lines.append(f"api ok: {bool(data.get('ok'))}")
+            break
+        except Exception as e:
+            last_err = e
+            if _attempt < 2:
+                time.sleep(0.3)
+    else:
+        lines.append(f"bot info: unavailable \u2014 {esc(str(last_err)[:120])}")
     lines.append("")
     lines.append("<b>Pipeline availability:</b>")
     lines.append(pipeline_availability())
