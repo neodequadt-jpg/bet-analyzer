@@ -1,0 +1,108 @@
+"""Regression tests for AI chat, sanitize, keyboard, callback additions.
+
+Stdlib only (unittest + unittest.mock) — no new dependencies.
+Run: python3 tests/test_tg_chat.py
+"""
+import os
+import sys
+import unittest
+from unittest import mock
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import tg_bot
+
+
+class TestSanitizeError(unittest.TestCase):
+    def test_redacts_token_in_url(self):
+        text = "HTTPSConnectionPool(... url: /bot8165315037:AAGxyz/getUpdates)"
+        result = tg_bot._sanitize_error(text)
+        self.assertIn("bot<REDACTED>", result)
+        self.assertNotIn("8165315037:", result)
+
+    def test_plain_text_unchanged(self):
+        self.assertEqual(tg_bot._sanitize_error("plain error"), "plain error")
+
+    def test_exception_object(self):
+        try:
+            raise ValueError("bad bot123:secret_abc in url")
+        except ValueError as e:
+            result = tg_bot._sanitize_error(e)
+        self.assertIn("bot<REDACTED>", result)
+        self.assertNotIn("secret_abc", result)
+
+
+class TestChunkText(unittest.TestCase):
+    def test_short_single_chunk(self):
+        self.assertEqual(tg_bot.chunk_text("hello"), ["hello"])
+
+    def test_each_chunk_within_limit(self):
+        text = "\n".join(f"line-{i}" for i in range(1000))
+        for c in tg_bot.chunk_text(text, max_len=200):
+            self.assertLessEqual(len(c), 200)
+
+    def test_long_line_split(self):
+        chunks = tg_bot.chunk_text("x" * 1000, max_len=100)
+        self.assertGreater(len(chunks), 1)
+        for c in chunks:
+            self.assertLessEqual(len(c), 100)
+
+
+class TestMainKeyboard(unittest.TestCase):
+    def test_2x2_structure(self):
+        rows = tg_bot._MAIN_KEYBOARD["inline_keyboard"]
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(len(rows[0]), 2)
+        self.assertEqual(len(rows[1]), 2)
+
+    def test_callback_data(self):
+        rows = tg_bot._MAIN_KEYBOARD["inline_keyboard"]
+        datas = {b["callback_data"] for row in rows for b in row}
+        self.assertEqual(datas, {"/value", "/express", "/report", "/status"})
+
+
+class TestDispatch(unittest.TestCase):
+    def test_start_returns_welcome(self):
+        self.assertEqual(tg_bot.dispatch("/start"), tg_bot.WELCOME_TEXT)
+
+    def test_help_returns_welcome(self):
+        self.assertEqual(tg_bot.dispatch("/help"), tg_bot.WELCOME_TEXT)
+
+    def test_unknown_message(self):
+        self.assertIn("Unknown command", tg_bot.dispatch("/nope"))
+
+
+class TestHandleCallback(unittest.TestCase):
+    def test_acks_then_replies(self):
+        calls = []
+        def fake_post(method, json_data=None):
+            calls.append((method, json_data))
+            return {"ok": True}
+        with mock.patch.object(tg_bot, "tg_post", fake_post), \
+             mock.patch.object(tg_bot, "dispatch", lambda cmd: "OK:" + cmd):
+            tg_bot._handle_callback({
+                "id": "cb1", "data": "/value",
+                "message": {"chat": {"id": 42}},
+            })
+        methods = [m for m, _ in calls]
+        self.assertEqual(methods, ["answerCallbackQuery", "sendMessage"])
+        self.assertEqual(calls[1][1]["text"], "OK:/value")
+        self.assertEqual(calls[1][1]["reply_markup"], tg_bot._MAIN_KEYBOARD)
+
+    def test_whitelist_blocks_reply(self):
+        calls = []
+        def fake_post(method, json_data=None):
+            calls.append((method, json_data))
+            return {"ok": True}
+        with mock.patch.object(tg_bot, "tg_post", fake_post), \
+             mock.patch.object(tg_bot, "TG_ADMIN_IDS", {999}):
+            tg_bot._handle_callback({
+                "id": "cb2", "data": "/value",
+                "message": {"chat": {"id": 42}},
+            })
+        methods = [m for m, _ in calls]
+        self.assertEqual(methods, ["answerCallbackQuery"])
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
