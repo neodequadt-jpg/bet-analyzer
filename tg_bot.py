@@ -46,7 +46,7 @@ except ValueError:
     TG_ADMIN_ID = None
 
 START_TIME = time.time()
-HTTP_TIMEOUT = 30
+HTTP_TIMEOUT = 8
 MAX_MESSAGE_LEN = 4000
 
 # Resilience: long-poll getUpdates(timeout=25) dies on a flapping proxy,
@@ -98,12 +98,26 @@ def tg_post(method, json_data=None) -> dict:
     return data
 
 
-def get_updates(offset=None, timeout=1) -> list:
+def get_updates(offset=None, timeout=1, retries=3, pause=0.3) -> list:
+    """Short-poll with fast internal retries for a flaky proxy.
+
+    opera-proxy randomly times out ~30% of requests (observed). Retry up to
+    `retries` extra times with a short `pause` before letting the error through,
+    so a single flake does not cost the caller a multi-second backoff.
+    """
     params = {"timeout": timeout}
     if offset is not None:
         params["offset"] = offset
-    data = tg_get("getUpdates", params)
-    return data.get("result") or []
+    last_err = None
+    for attempt in range(retries + 1):
+        try:
+            data = tg_get("getUpdates", params)
+            return data.get("result") or []
+        except Exception as e:
+            last_err = e
+            if attempt < retries:
+                time.sleep(pause)
+    raise last_err
 
 
 def chunk_text(text, max_len=MAX_MESSAGE_LEN) -> list:

@@ -129,3 +129,34 @@ def test_backoff_doubles():
     assert seq == [3, 6, 12, 24, 48, 60]
     # capped at the max: does not grow past 60s
     assert tg_bot.next_backoff(tg_bot.BACKOFF_MAX) == tg_bot.BACKOFF_MAX
+
+def test_get_updates_internal_retry(monkeypatch):
+    """One flaky failure inside get_updates must not bubble up to caller."""
+    monkeypatch.setattr(tg_bot.time, "sleep", lambda _s: None)
+    calls = {"n": 0}
+
+    def fake_get(method, params=None):
+        calls["n"] += 1
+        if calls["n"] < 2:
+            raise RuntimeError("502 Bad Gateway")
+        return {"ok": True, "result": [{"update_id": 1}]}
+
+    monkeypatch.setattr(tg_bot, "tg_get", fake_get)
+    updates = tg_bot.get_updates(offset=None, retries=3, pause=0.3)
+    assert calls["n"] == 2
+    assert updates == [{"update_id": 1}]
+
+
+def test_get_updates_retries_exhausted(monkeypatch):
+    """All internal retries failing -> error still raised for caller backoff."""
+    monkeypatch.setattr(tg_bot.time, "sleep", lambda _s: None)
+    calls = {"n": 0}
+
+    def fake_get(method, params=None):
+        calls["n"] += 1
+        raise RuntimeError("502 Bad Gateway")
+
+    monkeypatch.setattr(tg_bot, "tg_get", fake_get)
+    with pytest.raises(RuntimeError, match="502"):
+        tg_bot.get_updates(offset=None, retries=3, pause=0.3)
+    assert calls["n"] == 4  # 1 initial + 3 retries
