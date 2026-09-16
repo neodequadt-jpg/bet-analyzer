@@ -35,6 +35,12 @@ from ai.express_builder import ExpressBuilder
 from ai.analyst import ValueBetAnalyst
 from pathlib import Path
 
+import re
+_BOT_TOKEN_RE = re.compile(r"bot\d+:[A-Za-z0-9_-]+")
+def _sanitize_error(text) -> str:
+    """Redact Telegram bot token from error strings."""
+    return _BOT_TOKEN_RE.sub("bot<REDACTED>", str(text))
+
 # ---------------------------------------------------------------------------
 # 1. Config
 # ---------------------------------------------------------------------------
@@ -497,7 +503,7 @@ def cmd_status() -> str:
             if _attempt < 2:
                 time.sleep(0.3)
     else:
-        lines.append(f"bot info: unavailable \u2014 {esc(str(last_err)[:120])}")
+        lines.append(f"bot info: unavailable \u2014 {esc(_sanitize_error(last_err)[:120])}")
     lines.append("")
     lines.append("<b>Pipeline availability:</b>")
     lines.append(pipeline_availability())
@@ -609,7 +615,7 @@ def warmup(max_pings=5, pause=1.0) -> int:
         print(f"[tg_bot] tunnel warm after {n} pings")
         return n
     print(
-        f"[tg_bot] tunnel NOT warm after {max_pings} pings ({last_err}); "
+        f"[tg_bot] tunnel NOT warm after {max_pings} pings ({_sanitize_error(last_err)}); "
         "continuing anyway",
         file=sys.stderr,
     )
@@ -642,7 +648,7 @@ def main():
         try:
             updates = get_updates(offset)
         except Exception as e:
-            print(f"[tg_bot] getUpdates failed: {e}", file=sys.stderr)
+            print(f"[tg_bot] getUpdates failed: {_sanitize_error(e)}", file=sys.stderr)
             time.sleep(backoff)
             backoff = next_backoff(backoff)
             continue  # never crash the loop
@@ -652,7 +658,7 @@ def main():
                 offset = update["update_id"] + 1
                 handle(update)
             except Exception as e:
-                print(f"[tg_bot] handle update failed: {e}", file=sys.stderr)
+                print(f"[tg_bot] handle update failed: {_sanitize_error(e)}", file=sys.stderr)
 
 
 if __name__ == "__main__":
