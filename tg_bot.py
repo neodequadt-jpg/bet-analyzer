@@ -100,6 +100,19 @@ WELCOME_TEXT = (
     "\u0418\u043b\u0438 \u043f\u0440\u043e\u0441\u0442\u043e \u043d\u0430\u043f\u0438\u0448\u0438 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u2014 AI-\u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043d\u0442 \u043e\u0442\u0432\u0435\u0442\u0438\u0442.\n"
 )
 
+_MAIN_KEYBOARD = {
+    "inline_keyboard": [
+        [
+            {"text": "\U0001F4CA Value",   "callback_data": "/value"},
+            {"text": "\u26A1 Express",     "callback_data": "/express"},
+        ],
+        [
+            {"text": "\U0001F4C4 Report",  "callback_data": "/report"},
+            {"text": "\u2139\ufe0f Status", "callback_data": "/status"},
+        ],
+    ],
+}
+
 OUTCOME_LABELS = {"home": "home", "draw": "draw", "away": "away"}
 
 
@@ -192,19 +205,22 @@ def chunk_text(text, max_len=MAX_MESSAGE_LEN) -> list:
     return chunks
 
 
-def send_message(chat_id, text, parse_mode="HTML", retries=3):
+def send_message(chat_id, text, parse_mode="HTML", reply_markup=None, retries=3):
     """Send possibly-long message; long text is split into chunks.
 
     Each chunk is sent with up to `retries` attempts and growing pauses
     (1.5s, 3.0s, ...) so the bot survives a flapping proxy; the last
-    error is re-raised.
+    error is re-raised. `reply_markup` is attached ONLY to the last chunk.
     """
-    for chunk in chunk_text(text):
+    chunks = chunk_text(text)
+    for i, chunk in enumerate(chunks):
         payload = {
             "chat_id": chat_id,
             "text": chunk,
             "parse_mode": parse_mode,
         }
+        if reply_markup is not None and i == len(chunks) - 1:
+            payload["reply_markup"] = reply_markup
         for attempt in range(retries):
             try:
                 tg_post("sendMessage", payload)
@@ -552,10 +568,37 @@ def dispatch(command: str) -> str:
     return "Unknown command. Use /help to see available commands."
 
 
+def _handle_callback(cb):
+    """Process inline keyboard callback_query."""
+    cb_id = cb.get("id")
+    data = (cb.get("data") or "").strip()
+    msg = cb.get("message") or {}
+    chat = msg.get("chat") or {}
+    chat_id = chat.get("id")
+    # Always ack to stop the spinner on the client
+    try:
+        tg_post("answerCallbackQuery", {"callback_query_id": cb_id})
+    except Exception:
+        pass
+    if chat_id is None or not data:
+        return
+    if TG_ADMIN_IDS and chat_id not in TG_ADMIN_IDS:
+        return
+    command = data.split()[0].split("@")[0].lower()
+    try:
+        reply = dispatch(command)
+    except Exception as e:
+        reply = "\u26A0\ufe0f error: " + esc(str(e))[:400]
+    send_message(chat_id, reply, reply_markup=_MAIN_KEYBOARD)
+
+
 # ---------------------------------------------------------------------------
 # 5. Main loop
 # ---------------------------------------------------------------------------
 def handle(update):
+    cb = update.get("callback_query")
+    if cb:
+        return _handle_callback(cb)
     message = update.get("message") or {}
     chat = message.get("chat") or {}
     chat_id = chat.get("id")
@@ -593,7 +636,8 @@ def handle(update):
         reply = dispatch(command)
     except Exception as e:
         reply = "\u26A0\uFE0F error while running " + esc(command) + ": " + esc(str(e))[:400]
-    send_message(chat_id, reply)
+    kb = _MAIN_KEYBOARD if command in ("/start", "/help") else None
+    send_message(chat_id, reply, reply_markup=kb)
 
 
 def warmup(max_pings=5, pause=1.0) -> int:
