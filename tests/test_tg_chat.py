@@ -55,13 +55,13 @@ class TestMainKeyboard(unittest.TestCase):
         self.assertEqual(len(rows), 3)
         self.assertEqual(len(rows[0]), 2)
         self.assertEqual(len(rows[1]), 2)
-        self.assertEqual(len(rows[2]), 1)
+        self.assertEqual(len(rows[2]), 2)
 
     def test_callback_data(self):
         rows = tg_bot._MAIN_KEYBOARD["inline_keyboard"]
         datas = {b["callback_data"] for row in rows for b in row}
         self.assertEqual(
-            datas, {"/value", "/express", "/report", "/status", "/live tt 1"}
+            datas, {"/value", "/express", "/report", "/status", "/live tt 1", "/lang"}
         )
 
 
@@ -83,7 +83,8 @@ class TestHandleCallback(unittest.TestCase):
             calls.append((method, json_data))
             return {"ok": True}
         with mock.patch.object(tg_bot, "tg_post", fake_post), \
-             mock.patch.object(tg_bot, "dispatch", lambda cmd: "OK:" + cmd):
+             mock.patch.object(tg_bot, "dispatch", lambda cmd: "OK:" + cmd), \
+             mock.patch.object(tg_bot, "TG_ADMIN_IDS", set()):
             tg_bot._handle_callback({
                 "id": "cb1", "data": "/value",
                 "message": {"chat": {"id": 42}},
@@ -155,6 +156,66 @@ class TestLiveQueryDetection(unittest.TestCase):
             (3088, 4))
 
 
+class TestI18n(unittest.TestCase):
+    """RU/EN language switch: _LANG/_set_lang/_t + localized welcome/keyboard."""
+
+    def setUp(self):
+        tg_bot._LANG.clear()
+
+    def test_default_lang_ru(self):
+        self.assertEqual(tg_bot._get_lang(1), "ru")
+
+    def test_set_lang_en(self):
+        tg_bot._set_lang(1, "en")
+        self.assertEqual(tg_bot._get_lang(1), "en")
+
+    def test_set_lang_ru(self):
+        tg_bot._set_lang(1, "en")
+        tg_bot._set_lang(1, "ru")
+        self.assertEqual(tg_bot._get_lang(1), "ru")
+
+    def test_lang_toggle_from_ru(self):
+        tg_bot._set_lang(1, None)
+        self.assertEqual(tg_bot._get_lang(1), "en")
+
+    def test_t_returns_en(self):
+        tg_bot._set_lang(1, "en")
+        self.assertIn("Commands", tg_bot._t(1, "welcome_cmds"))
+
+    def test_t_falls_back_to_ru_for_unknown(self):
+        tg_bot._set_lang(1, "en")
+        # key exists in both
+        s = tg_bot._t(1, "live_total", n=3)
+        self.assertIn("3", s)
+        self.assertIn("Total", s)
+
+    def test_welcome_ru_has_cyrillic(self):
+        w = tg_bot.get_welcome_text(1)
+        self.assertIn("\u041a\u043e\u043c\u0430\u043d\u0434\u044b", w)
+
+    def test_welcome_en_has_english(self):
+        tg_bot._set_lang(1, "en")
+        w = tg_bot.get_welcome_text(1)
+        self.assertIn("Commands", w)
+
+    def test_keyboard_labels_change_with_lang(self):
+        ru_kb = tg_bot.get_main_keyboard(1)
+        ru_labels = [b["text"] for row in ru_kb["inline_keyboard"] for b in row]
+        tg_bot._set_lang(1, "en")
+        en_kb = tg_bot.get_main_keyboard(1)
+        en_labels = [b["text"] for row in en_kb["inline_keyboard"] for b in row]
+        self.assertNotEqual(ru_labels, en_labels)
+        # Same callback_data regardless of lang
+        ru_cb = [b["callback_data"] for row in ru_kb["inline_keyboard"] for b in row]
+        en_cb = [b["callback_data"] for row in en_kb["inline_keyboard"] for b in row]
+        self.assertEqual(ru_cb, en_cb)
+
+    def test_lang_button_present(self):
+        kb = tg_bot.get_main_keyboard(1)
+        cbs = [b["callback_data"] for row in kb["inline_keyboard"] for b in row]
+        self.assertIn("/lang", cbs)
+
+
 class TestNoRawAngleBrackets(unittest.TestCase):
     """Regression: raw <sport>/<hours> in HTML text caused Telegram 400 Bad Request."""
 
@@ -175,6 +236,14 @@ class TestNoRawAngleBrackets(unittest.TestCase):
 
     def test_welcome_no_raw_angles(self):
         self._check("WELCOME_TEXT", tg_bot.WELCOME_TEXT)
+
+    def test_welcome_en_no_raw_angles(self):
+        tg_bot._set_lang(1, "en")
+        self._check("welcome_en", tg_bot.get_welcome_text(1))
+
+    def test_welcome_ru_no_raw_angles(self):
+        tg_bot._LANG.clear()
+        self._check("welcome_ru", tg_bot.get_welcome_text(1))
 
     def test_cmd_live_usage_no_raw_angles(self):
         self._check("cmd_live usage", tg_bot.cmd_live(["nonsense"]))

@@ -85,8 +85,91 @@ OMNI_CHAT_MODEL = "oc/big-pickle"
 CHAT_HISTORY = {}
 CHAT_HISTORY_MAX = 12
 
+# ---------------------------------------------------------------------------
+# i18n (RU/EN): dict-based, no babel/gettext
+# ---------------------------------------------------------------------------
+_LANG = {}                      # chat_id -> "ru" | "en"
+DEFAULT_LANG = "ru"
+
+_I18N = {
+    "ru": {
+        "welcome_title": "<b>\U0001F9E0 BET-ANALYZER bot</b>\n",
+        "welcome_sub": "Pipeline: Fonbet + manual \u2192 consensus \u2192 EV \u2192 value bets.\n\n",
+        "welcome_cmds": "<b>Команды:</b>\n",
+        "welcome_footer": "\n\u0418\u043b\u0438 \u043f\u0440\u043e\u0441\u0442\u043e "
+                          "\u043d\u0430\u043f\u0438\u0448\u0438 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 "
+                          "\u2014 AI-\u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043d\u0442 "
+                          "\u043e\u0442\u0432\u0435\u0442\u0438\u0442.\n",
+        "kb_value": "\U0001F4CA Value",
+        "kb_express": "\u26A1 \u042d\u043a\u0441\u043f\u0440\u0435\u0441\u0441",
+        "kb_report": "\U0001F4C4 \u041e\u0442\u0447\u0451\u0442",
+        "kb_status": "\u2139\uFE0F \u0421\u0442\u0430\u0442\u0443\u0441",
+        "kb_live": "\U0001F3BE Live TT",
+        "kb_lang": "\U0001F310 EN",
+        "live_header": "\u26A1 /live {sport} \u2014 \u0431\u043b\u0438\u0436\u0430\u0439\u0448\u0438\u0435 {hours} \u0447",
+        "live_empty": "\u041c\u0430\u0442\u0447\u0435\u0439 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e \u0432 \u0431\u043b\u0438\u0436\u0430\u0439\u0448\u0438\u0435 {hours} \u0447.",
+        "live_usage": "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435: /live &lt;sport&gt; &lt;hours&gt;\nsport: tt | football | hockey | tennis | esports\nhours: 1..4",
+        "live_total": "\u0412\u0441\u0435\u0433\u043e: {n} \u043c\u0430\u0442\u0447\u0435\u0439.",
+        "live_min_suffix": "\u043c\u0438\u043d",
+        "live_msk": "\u041c\u0421\u041a",
+        "live_in_min": "\u0447\u0435\u0440\u0435\u0437 {n} {unit}",
+        "rate_limit": "\u23F3 \u0421\u043b\u0438\u0448\u043a\u043e\u043c \u043c\u043d\u043e\u0433\u043e \u0437\u0430\u043f\u0440\u043e\u0441\u043e\u0432. \u041f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u0435 \u0447\u0435\u0440\u0435\u0437 {n} \u0441.",
+        "wl_reject": "\U0001F512 \u0411\u043e\u0442 \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442 \u043f\u043e \u043f\u0440\u0438\u0433\u043b\u0430\u0448\u0435\u043d\u0438\u044f\u043c.\n\u0412\u0430\u0448 chat_id: <code>{id}</code>\n\u041e\u0442\u043f\u0440\u0430\u0432\u044c\u0442\u0435 \u0435\u0433\u043e \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0443 \u0434\u043b\u044f \u0434\u043e\u0441\u0442\u0443\u043f\u0430.",
+        "whoami_hint": "\u0412\u0430\u0448 chat_id: <code>{id}</code>\n\n\u041e\u0442\u043f\u0440\u0430\u0432\u044c\u0442\u0435 \u0435\u0433\u043e \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0443, \u0435\u0441\u043b\u0438 \u0431\u043e\u0442 \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442 \u043f\u043e \u043f\u0440\u0438\u0433\u043b\u0430\u0448\u0435\u043d\u0438\u044f\u043c.",
+        "reset_ok": "\u2705 \u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0434\u0438\u0430\u043b\u043e\u0433\u0430 \u0441 AI \u043e\u0447\u0438\u0449\u0435\u043d\u0430.",
+        "lang_switched": "\U0001F310 \u042f\u0437\u044b\u043a \u043f\u0435\u0440\u0435\u043a\u043b\u044e\u0447\u0451\u043d \u043d\u0430: \u0420\u0443\u0441\u0441\u043a\u0438\u0439",
+        "ai_directive": "\u041e\u0442\u0432\u0435\u0447\u0430\u0439 \u0422\u041e\u041b\u042c\u041a\u041e \u043d\u0430 \u0440\u0443\u0441\u0441\u043a\u043e\u043c \u044f\u0437\u044b\u043a\u0435.",
+    },
+    "en": {
+        "welcome_title": "<b>\U0001F9E0 BET-ANALYZER bot</b>\n",
+        "welcome_sub": "Pipeline: Fonbet + manual \u2192 consensus \u2192 EV \u2192 value bets.\n\n",
+        "welcome_cmds": "<b>Commands:</b>\n",
+        "welcome_footer": "\nOr just send a message \u2014 the AI assistant will reply.\n",
+        "kb_value": "\U0001F4CA Value",
+        "kb_express": "\u26A1 Express",
+        "kb_report": "\U0001F4C4 Report",
+        "kb_status": "\u2139\uFE0F Status",
+        "kb_live": "\U0001F3BE Live TT",
+        "kb_lang": "\U0001F310 RU",
+        "live_header": "\u26A1 /live {sport} \u2014 next {hours} h",
+        "live_empty": "No matches found in the next {hours} h.",
+        "live_usage": "Usage: /live &lt;sport&gt; &lt;hours&gt;\nsport: tt | football | hockey | tennis | esports\nhours: 1..4",
+        "live_total": "Total: {n} matches.",
+        "live_min_suffix": "min",
+        "live_msk": "MSK",
+        "live_in_min": "in {n} {unit}",
+        "rate_limit": "\u23F3 Too many requests. Retry in {n} s.",
+        "wl_reject": "\U0001F512 Bot is invite-only.\nYour chat_id: <code>{id}</code>\nSend it to the admin for access.",
+        "whoami_hint": "Your chat_id: <code>{id}</code>\n\nSend it to the admin if the bot is invite-only.",
+        "reset_ok": "\u2705 AI chat history cleared.",
+        "lang_switched": "\U0001F310 Language switched to: English",
+        "ai_directive": "Reply ONLY in English.",
+    },
+}
+
+def _get_lang(chat_id) -> str:
+    return _LANG.get(chat_id, DEFAULT_LANG)
+
+def _set_lang(chat_id, lang: str) -> str:
+    lang = (lang or "").lower().strip()
+    if lang in ("en", "eng", "english", "ang"):
+        _LANG[chat_id] = "en"
+    elif lang in ("ru", "rus", "russian"):
+        _LANG[chat_id] = "ru"
+    else:
+        # toggle
+        cur = _get_lang(chat_id)
+        _LANG[chat_id] = "en" if cur == "ru" else "ru"
+    return _LANG[chat_id]
+
+def _t(chat_id, key, **fmt) -> str:
+    lang = _get_lang(chat_id)
+    text = _I18N.get(lang, {}).get(key) or _I18N[DEFAULT_LANG].get(key) or key
+    return text.format(**fmt) if fmt else text
+
 # argv for /live set by handle()/_handle_callback() before dispatch (see D4)
 _LAST_LIVE_ARGV: list = []
+_LAST_CHAT_ID = None
 
 WELCOME_TEXT = (
     "<b>\U0001F9E0 BET-ANALYZER bot</b>\n"
@@ -109,18 +192,59 @@ WELCOME_TEXT = (
 _MAIN_KEYBOARD = {
     "inline_keyboard": [
         [
-            {"text": "\U0001F4CA Value",   "callback_data": "/value"},
-            {"text": "\u26A1 Express",     "callback_data": "/express"},
-        ],
-        [
-            {"text": "\U0001F4C4 Report",  "callback_data": "/report"},
-            {"text": "\u2139\ufe0f Status", "callback_data": "/status"},
-        ],
-        [
+            {"text": "\u26A1 \u042d\u043a\u0441\u043f\u0440\u0435\u0441\u0441", "callback_data": "/express"},
             {"text": "\U0001F3BE Live TT", "callback_data": "/live tt 1"},
+        ],
+        [
+            {"text": "\U0001F4CA Value", "callback_data": "/value"},
+            {"text": "\U0001F4C4 \u041e\u0442\u0447\u0451\u0442", "callback_data": "/report"},
+        ],
+        [
+            {"text": "\u2139\uFE0F \u0421\u0442\u0430\u0442\u0443\u0441", "callback_data": "/status"},
+            {"text": "\U0001F310 EN", "callback_data": "/lang"},
         ],
     ],
 }
+
+def get_main_keyboard(chat_id) -> dict:
+    """Inline keyboard with per-chat language labels (3 grouped rows)."""
+    return {
+        "inline_keyboard": [
+            [
+                {"text": _t(chat_id, "kb_express"), "callback_data": "/express"},
+                {"text": _t(chat_id, "kb_live"),    "callback_data": "/live tt 1"},
+            ],
+            [
+                {"text": _t(chat_id, "kb_value"),  "callback_data": "/value"},
+                {"text": _t(chat_id, "kb_report"), "callback_data": "/report"},
+            ],
+            [
+                {"text": _t(chat_id, "kb_status"), "callback_data": "/status"},
+                {"text": _t(chat_id, "kb_lang"),   "callback_data": "/lang"},
+            ],
+        ],
+    }
+
+def get_welcome_text(chat_id) -> str:
+    """Welcome/help text localized for the chat's language."""
+    lines = [
+        _t(chat_id, "welcome_title"),
+        _t(chat_id, "welcome_sub"),
+        _t(chat_id, "welcome_cmds"),
+        "/start \u2014 welcome\n",
+        "/help \u2014 help\n",
+        "/value \u2014 value bets\n",
+        "/express \u2014 AI express\n",
+        "/report \u2014 AI report\n",
+        "/live &lt;sport&gt; &lt;hours&gt; \u2014 upcoming matches (tt/football/hockey/tennis/esports)\n",
+        "/status \u2014 system status\n",
+        "/whoami \u2014 my chat_id\n",
+        "/reset \u2014 clear AI history\n",
+        "/prompt \u2014 show system prompt\n",
+        "/lang \u2014 switch language (RU/EN)\n",
+        _t(chat_id, "welcome_footer"),
+    ]
+    return "".join(lines)
 
 OUTCOME_LABELS = {"home": "home", "draw": "draw", "away": "away"}
 
@@ -392,7 +516,7 @@ _SPORT_NAMES = {
 }
 
 
-def cmd_live(argv: list[str]) -> str:
+def cmd_live(argv: list[str], chat_id=None) -> str:
     """/live &lt;sport&gt; &lt;hours&gt; — upcoming Fonbet matches with П1/П2 odds.
 
     Defaults: sport=tt, hours=1. Hours are clamped to 1..4.
@@ -401,16 +525,7 @@ def cmd_live(argv: list[str]) -> str:
     hours_raw = argv[1] if len(argv) > 1 and argv[1] else "1"
     sport_id = resolve_sport(token)
     if sport_id is None:
-        return (
-            "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435: "
-            "/live &lt;sport&gt; &lt;hours&gt;\n"
-            "sport: tt | football | hockey | tennis | esports "
-            "(\u043b\u0438\u0431\u043e \u043f\u043e-\u0440\u0443\u0441\u0441\u043a\u0438: "
-            "\u043d\u0430\u0441\u0442\u043e\u043b\u044c\u043d\u044b\u0439, "
-            "\u0444\u0443\u0442\u0431\u043e\u043b, \u0445\u043e\u043a\u043a\u0435\u0439, "
-            "\u0442\u0435\u043d\u043d\u0438\u0441, \u043a\u0438\u0431\u0435\u0440\u0441\u043f\u043e\u0440\u0442)\n"
-            "hours: 1..4"
-        )
+        return _t(chat_id, "live_usage")
     try:
         hours = int(hours_raw)
     except ValueError:
@@ -422,21 +537,21 @@ def cmd_live(argv: list[str]) -> str:
     except Exception as e:
         return "\u26A0\uFE0F error: " + esc(str(e))[:400]
     if not events:
-        return f"\u041c\u0430\u0442\u0447\u0435\u0439 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e \u0432 \u0431\u043b\u0438\u0436\u0430\u0439\u0448\u0438\u0435 {hours} \u0447."
+        return _t(chat_id, "live_empty", hours=hours)
 
     tz_msk = timezone(timedelta(hours=3))
     now = time.time()
     name = _SPORT_NAMES.get(sport_id, token)
     lines = [
-        f"<b>\u26A1 /live {name} \u2014 \u0431\u043b\u0438\u0436\u0430\u0439\u0448\u0438\u0435 {hours} \u0447</b>",
+        f"<b>{_t(chat_id, 'live_header', sport=esc(name), hours=hours)}</b>",
         "",
     ]
     for ev in events:
         kickoff = datetime.fromtimestamp(ev["start_ts"], tz=tz_msk).strftime("%H:%M")
         delta_min = max(0, int((ev["start_ts"] - now) // 60))
         block = (
-            f"\U0001F3AF <b>{kickoff} \u041c\u0421\u041a</b> "
-            f"(\u0447\u0435\u0440\u0435\u0437 {delta_min} \u043c\u0438\u043d)\n"
+            f"\U0001F3AF <b>{kickoff} {_t(chat_id, 'live_msk')}</b> "
+            f"({_t(chat_id, 'live_in_min', n=delta_min, unit=_t(chat_id, 'live_min_suffix'))})\n"
             f"   {esc(ev['home'])} vs {esc(ev['away'])}"
         )
         if ev.get("league"):
@@ -448,7 +563,7 @@ def cmd_live(argv: list[str]) -> str:
         )
         lines.append(block)
         lines.append("")
-    lines.append(f"\u0412\u0441\u0435\u0433\u043e: {len(events)} \u043c\u0430\u0442\u0447\u0435\u0439.")
+    lines.append(_t(chat_id, "live_total", n=len(events)))
     return "\n".join(lines)
 
 
@@ -623,8 +738,7 @@ def _rate_check_and_warn(chat_id) -> bool:
         _RATE_WARN[chat_id] = now
         try:
             send_message(chat_id,
-                f"\u23F3 Слишком много запросов. "
-                f"Повторите через {int(wait) + 1} с.")
+                _t(chat_id, "rate_limit", n=int(wait) + 1))
         except Exception:
             pass
     return False
@@ -719,7 +833,8 @@ def ai_chat(chat_id, user_text: str) -> str:
     """Free-text AI chat via OmniRoute with universal sports-betting prompt."""
     hist = CHAT_HISTORY.setdefault(chat_id, [])
     messages = []
-    system_text = CHAT_SYSTEM_PROMPT
+    lang_directive = _t(chat_id, "ai_directive")
+    system_text = lang_directive + "\n\n" + (CHAT_SYSTEM_PROMPT or "")
     try:
         detected = _detect_live_query(user_text)
         if detected:
@@ -770,7 +885,7 @@ def dispatch(command: str) -> str:
     if command == "/live":
         # argv was stored in _LAST_LIVE_ARGV by handle()/_handle_callback();
         # empty list -> cmd_live falls back to defaults (tt, 1h)
-        return cmd_live(_LAST_LIVE_ARGV)
+        return cmd_live(_LAST_LIVE_ARGV, chat_id=_LAST_CHAT_ID)
     return "Unknown command. Use /help to see available commands."
 
 
@@ -790,24 +905,28 @@ def _handle_callback(cb):
         return
     if TG_ADMIN_IDS and chat_id not in TG_ADMIN_IDS:
         try:
-            send_message(chat_id,
-                "\U0001F512 Бот работает по приглашениям.\n"
-                f"Ваш chat_id: <code>{chat_id}</code>\n"
-                "Отправьте его администратору для доступа.")
+            send_message(chat_id, _t(chat_id, "wl_reject", id=chat_id))
         except Exception:
             pass
         return
     if not _rate_check_and_warn(chat_id):
         return
+    global _LAST_LIVE_ARGV, _LAST_CHAT_ID
+    _LAST_CHAT_ID = chat_id
+    if data == "/lang":
+        _set_lang(chat_id, None)
+        send_message(chat_id,
+            _t(chat_id, "lang_switched"),
+            reply_markup=get_main_keyboard(chat_id))
+        return
     command = data.split()[0].split("@")[0].lower()
-    global _LAST_LIVE_ARGV
     if command == "/live":
         _LAST_LIVE_ARGV = data.split()[1:]
     try:
         reply = dispatch(command)
     except Exception as e:
         reply = "\u26A0\ufe0f error: " + esc(str(e))[:400]
-    send_message(chat_id, reply, reply_markup=_MAIN_KEYBOARD)
+    send_message(chat_id, reply, reply_markup=get_main_keyboard(chat_id))
 
 
 # ---------------------------------------------------------------------------
@@ -826,18 +945,10 @@ def handle(update):
     text_raw = (message.get("text") or "").strip()
     cmd = text_raw.split()[0].split("@")[0].lower() if text_raw else ""
     if cmd == "/whoami":
-        send_message(chat_id,
-            "Ваш chat_id: <code>" + str(chat_id) + "</code>\n\n"
-            "\u041e\u0442\u043f\u0440\u0430\u0432\u044c\u0442\u0435 \u0435\u0433\u043e "
-            "\u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0443, "
-            "\u0435\u0441\u043b\u0438 \u0431\u043e\u0442 \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442 "
-            "\u043f\u043e \u043f\u0440\u0438\u0433\u043b\u0430\u0448\u0435\u043d\u0438\u044f\u043c.")
+        send_message(chat_id, _t(chat_id, "whoami_hint", id=chat_id))
         return
     if TG_ADMIN_IDS and chat_id not in TG_ADMIN_IDS:
-        send_message(chat_id,
-            "\U0001F512 Бот работает по приглашениям.\n"
-            f"Ваш chat_id: <code>{chat_id}</code>\n"
-            "Отправьте его администратору для доступа.")
+        send_message(chat_id, _t(chat_id, "wl_reject", id=chat_id))
         return
     if not _rate_check_and_warn(chat_id):
         return
@@ -848,11 +959,23 @@ def handle(update):
     # --- AI chat extensions ---
     if command == "/reset":
         CHAT_HISTORY.pop(chat_id, None)
-        send_message(chat_id, "\u2705 \u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0434\u0438\u0430\u043b\u043e\u0433\u0430 \u0441 AI \u043e\u0447\u0438\u0449\u0435\u043d\u0430.")
+        send_message(chat_id, _t(chat_id, "reset_ok"))
+        return
+    if command == "/lang":
+        argv = text.split()[1:]
+        new_lang = _set_lang(chat_id, argv[0] if argv else None)
+        send_message(chat_id,
+            _t(chat_id, "lang_switched"),
+            reply_markup=get_main_keyboard(chat_id))
         return
     if command == "/prompt":
         body = CHAT_SYSTEM_PROMPT[:4000] if CHAT_SYSTEM_PROMPT else "\u041f\u0440\u043e\u043c\u043f\u0442 \u043d\u0435 \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d."
         send_message(chat_id, body)
+        return
+    if command in ("/start", "/help"):
+        send_message(chat_id,
+            get_welcome_text(chat_id),
+            reply_markup=get_main_keyboard(chat_id))
         return
     if not text.startswith("/"):
         try:
@@ -861,15 +984,15 @@ def handle(update):
             reply = "\u26A0\uFE0F AI error: " + esc(str(e))[:400]
         send_message(chat_id, reply)
         return
-    global _LAST_LIVE_ARGV
+    global _LAST_LIVE_ARGV, _LAST_CHAT_ID
+    _LAST_CHAT_ID = chat_id
     if command == "/live":
         _LAST_LIVE_ARGV = text.split()[1:]
     try:
         reply = dispatch(command)
     except Exception as e:
         reply = "\u26A0\uFE0F error while running " + esc(command) + ": " + esc(str(e))[:400]
-    kb = _MAIN_KEYBOARD if command in ("/start", "/help") else None
-    send_message(chat_id, reply, reply_markup=kb)
+    send_message(chat_id, reply)
 
 
 def warmup(max_pings=5, pause=1.0) -> int:
