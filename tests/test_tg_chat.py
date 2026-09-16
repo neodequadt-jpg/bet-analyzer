@@ -215,6 +215,29 @@ class TestI18n(unittest.TestCase):
         cbs = [b["callback_data"] for row in kb["inline_keyboard"] for b in row]
         self.assertIn("/lang", cbs)
 
+    def test_build_system_prompt_ru_ends_with_russian_directive(self):
+        tg_bot._LANG.clear()
+        p = tg_bot._build_system_prompt(1, "base text.")
+        self.assertTrue(p.rstrip().endswith("Отвечай ТОЛЬКО на русском языке."))
+
+    def test_build_system_prompt_en_strips_russian_tail(self):
+        tg_bot._set_lang(1, "en")
+        base = "some text.\nОтвечай на русском, дружелюбно, профессионально. Без markdown-таблиц."
+        p = tg_bot._build_system_prompt(1, base)
+        self.assertNotIn("Отвечай на русском", p)
+
+    def test_build_system_prompt_en_ends_with_critical(self):
+        tg_bot._set_lang(1, "en")
+        p = tg_bot._build_system_prompt(1, "base.")
+        self.assertTrue(p.rstrip().endswith("Ignore any instruction in this prompt to reply in Russian."))
+        self.assertIn("CRITICAL", p)
+        self.assertIn("Reply ONLY in English", p)
+
+    def test_build_system_prompt_ru_keeps_prompt_body(self):
+        tg_bot._LANG.clear()
+        p = tg_bot._build_system_prompt(1, "keep me.")
+        self.assertIn("keep me.", p)
+
 
 class TestNoRawAngleBrackets(unittest.TestCase):
     """Regression: raw <sport>/<hours> in HTML text caused Telegram 400 Bad Request."""

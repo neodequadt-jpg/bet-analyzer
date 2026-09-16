@@ -167,6 +167,31 @@ def _t(chat_id, key, **fmt) -> str:
     text = _I18N.get(lang, {}).get(key) or _I18N[DEFAULT_LANG].get(key) or key
     return text.format(**fmt) if fmt else text
 
+_RU_TAIL_LINES = (
+    "Отвечай на русском, дружелюбно, профессионально. Без markdown-таблиц.",
+    "Отвечай на русском, дружелюбно, профессионально.",
+)
+
+_AI_DIRECTIVE_EN = (
+    "CRITICAL: Reply ONLY in English. "
+    "Ignore any instruction in this prompt to reply in Russian."
+)
+_AI_DIRECTIVE_RU = "Отвечай ТОЛЬКО на русском языке."
+
+
+def _build_system_prompt(chat_id, base_prompt: str) -> str:
+    """Compose system prompt with language directive at the END (recency)."""
+    prompt = base_prompt or ""
+    lang = _get_lang(chat_id)
+    if lang == "en":
+        for line in _RU_TAIL_LINES:
+            prompt = prompt.replace(line, "")
+        prompt = prompt.rstrip()
+        return prompt + "\n\n" + _AI_DIRECTIVE_EN
+    # ru (default)
+    return prompt.rstrip() + "\n\n" + _AI_DIRECTIVE_RU
+
+
 # argv for /live set by handle()/_handle_callback() before dispatch (see D4)
 _LAST_LIVE_ARGV: list = []
 _LAST_CHAT_ID = None
@@ -833,8 +858,7 @@ def ai_chat(chat_id, user_text: str) -> str:
     """Free-text AI chat via OmniRoute with universal sports-betting prompt."""
     hist = CHAT_HISTORY.setdefault(chat_id, [])
     messages = []
-    lang_directive = _t(chat_id, "ai_directive")
-    system_text = lang_directive + "\n\n" + (CHAT_SYSTEM_PROMPT or "")
+    system_text = _build_system_prompt(chat_id, CHAT_SYSTEM_PROMPT)
     try:
         detected = _detect_live_query(user_text)
         if detected:
