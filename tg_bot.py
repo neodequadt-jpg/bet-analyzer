@@ -97,7 +97,7 @@ WELCOME_TEXT = (
     "/value \u2014 run pipeline, show value bets\n"
     "/express \u2014 AI express from value bets\n"
     "/report \u2014 AI analyst report on the top bet\n"
-    "/live <sport> <hours> \u2014 upcoming matches (tt/football/hockey/tennis/esports)\n"
+    "/live &lt;sport&gt; &lt;hours&gt; \u2014 upcoming matches (tt/football/hockey/tennis/esports)\n"
     "/status \u2014 bot & pipeline status\n"
     "/whoami \u2014 print your chat_id\n"
     "/reset \u2014 clear AI chat history\n"
@@ -393,7 +393,7 @@ _SPORT_NAMES = {
 
 
 def cmd_live(argv: list[str]) -> str:
-    """/live <sport> <hours> — upcoming Fonbet matches with П1/П2 odds.
+    """/live &lt;sport&gt; &lt;hours&gt; — upcoming Fonbet matches with П1/П2 odds.
 
     Defaults: sport=tt, hours=1. Hours are clamped to 1..4.
     """
@@ -403,7 +403,7 @@ def cmd_live(argv: list[str]) -> str:
     if sport_id is None:
         return (
             "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435: "
-            "/live <sport> <hours>\n"
+            "/live &lt;sport&gt; &lt;hours&gt;\n"
             "sport: tt | football | hockey | tennis | esports "
             "(\u043b\u0438\u0431\u043e \u043f\u043e-\u0440\u0443\u0441\u0441\u043a\u0438: "
             "\u043d\u0430\u0441\u0442\u043e\u043b\u044c\u043d\u044b\u0439, "

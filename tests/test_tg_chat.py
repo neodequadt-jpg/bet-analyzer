@@ -130,5 +130,33 @@ class TestLiveCommand(unittest.TestCase):
         self.assertIn("/live tt 1", datas)
 
 
+class TestNoRawAngleBrackets(unittest.TestCase):
+    """Regression: raw <sport>/<hours> in HTML text caused Telegram 400 Bad Request."""
+
+    ALLOWED = {"b","i","u","s","code","pre","a","tg-spoiler","em","strong","ins","strike","span"}
+
+    def _check(self, name, text):
+        from html.parser import HTMLParser
+        class P(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.bad = []
+            def handle_starttag(self, tag, attrs):
+                if tag not in TestNoRawAngleBrackets.ALLOWED:
+                    self.bad.append(tag)
+        parser = P()
+        parser.feed(text)
+        self.assertEqual(parser.bad, [], f"{name}: unsupported tags {parser.bad}")
+
+    def test_welcome_no_raw_angles(self):
+        self._check("WELCOME_TEXT", tg_bot.WELCOME_TEXT)
+
+    def test_cmd_live_usage_no_raw_angles(self):
+        self._check("cmd_live usage", tg_bot.cmd_live(["nonsense"]))
+
+    def test_cmd_live_tt_no_raw_angles(self):
+        self._check("cmd_live tt 1", tg_bot.cmd_live(["tt", "1"]))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
