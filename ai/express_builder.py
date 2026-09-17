@@ -7,7 +7,7 @@ import requests
 from ai.express_prompt import EXPRESS_SYSTEM_PROMPT, EXPRESS_CONSENSUS_PROMPT
 
 OMNI_URL = "http://127.0.0.1:20128/v1/chat/completions"
-MODEL = "oc/big-pickle"
+MODEL = "gemini/gemini-3.1-flash-lite-preview"
 MIN_EV = 0.03
 MIN_CONFIDENCE = 0.6
 MIN_TRUST_SCORE = 0.7
@@ -15,7 +15,7 @@ MIN_TRUST_SCORE = 0.7
 
 class ExpressBuilder:
     def __init__(self, api_key=None, model=MODEL, timeout=45):
-        self.api_key = api_key or os.environ.get("OMNI_KEY") or ""
+        self.api_key = api_key or os.environ.get("OMNI_KEY") or "sk-84454d30f22bfcb1-5d2256-72fbd6b3"
         self.model = model
         self.timeout = timeout
 

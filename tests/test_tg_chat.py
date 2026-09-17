@@ -318,5 +318,15 @@ class TestRateLimitAndRejection(unittest.TestCase):
         self.assertTrue(("администратор" in text.lower()) or ("приглаш" in text.lower()))
 
 
+class TestGeminiSwitch(unittest.TestCase):
+    """Verify switch to Gemini + auth header."""
+
+    def test_model_is_gemini(self):
+        self.assertTrue(tg_bot.OMNI_CHAT_MODEL.startswith("gemini/"))
+
+    def test_omni_key_set(self):
+        self.assertTrue(tg_bot.OMNI_KEY.startswith("sk-"))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -5,7 +5,7 @@ import os
 import requests
 
 OMNI_URL = "http://127.0.0.1:20128/v1/chat/completions"
-DEFAULT_MODEL = "oc/big-pickle"
+DEFAULT_MODEL = "gemini/gemini-3.1-flash-lite-preview"
 
 SYSTEM_PROMPT = (
     "You are a professional analyst of the Russian bookmaker market. "
@@ -16,7 +16,7 @@ SYSTEM_PROMPT = (
 
 class ValueBetAnalyst:
     def __init__(self, api_key=None, model=DEFAULT_MODEL, timeout=90):
-        self.api_key = api_key or os.environ.get("OMNI_KEY") or ""
+        self.api_key = api_key or os.environ.get("OMNI_KEY") or "sk-84454d30f22bfcb1-5d2256-72fbd6b3"
         self.model = model
         self.timeout = timeout
 

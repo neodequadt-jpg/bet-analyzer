@@ -12,13 +12,13 @@ import requests
 
 
 OMNI_URL = "http://127.0.0.1:20128/v1/chat/completions"
-MODEL = "oc/big-pickle"
+MODEL = "gemini/gemini-3.1-flash-lite-preview"
 
 
 class BettingAI:
     def __init__(self, api_key: str | None = None, timeout: int = 120):
         # OmniRoute может работать без auth. Пустой ключ = no auth.
-        self.api_key = api_key or os.environ.get("OMNI_KEY") or ""
+        self.api_key = api_key or os.environ.get("OMNI_KEY") or "sk-84454d30f22bfcb1-5d2256-72fbd6b3"
         self.timeout = timeout
 
     @staticmethod

@@ -81,7 +81,8 @@ BACKOFF_MAX = 60
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "sports_betting_ru.txt"
 CHAT_SYSTEM_PROMPT = _PROMPT_PATH.read_text(encoding="utf-8") if _PROMPT_PATH.exists() else ""
 OMNI_CHAT_URL = "http://127.0.0.1:20128/v1/chat/completions"
-OMNI_CHAT_MODEL = "oc/big-pickle"
+OMNI_CHAT_MODEL = "gemini/gemini-3.1-flash-lite-preview"
+OMNI_KEY = os.environ.get("OMNI_KEY", "sk-84454d30f22bfcb1-5d2256-72fbd6b3")
 CHAT_HISTORY = {}
 CHAT_HISTORY_MAX = 12
 
@@ -879,9 +880,15 @@ def ai_chat(chat_id, user_text: str) -> str:
         "model": OMNI_CHAT_MODEL,
         "messages": messages,
         "temperature": 0.4,
-        "max_tokens": 1200,
+        "max_tokens": 2000,
     }
-    r = requests.post(OMNI_CHAT_URL, json=payload, timeout=90)
+    r = requests.post(
+        OMNI_CHAT_URL,
+        json=payload,
+        headers={"Authorization": f"Bearer {OMNI_KEY}",
+                 "Content-Type": "application/json"},
+        timeout=120,
+    )
     r.raise_for_status()
     data = r.json()
     choices = data.get("choices") or []
