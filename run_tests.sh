@@ -1,22 +1,20 @@
 #!/usr/bin/env bash
-# Run all BET-ANALYZER tests.
-# Prefers AVITO venv pytest (has pytest 9.x); falls back to system python3 + unittest.
+# Run BET-ANALYZER tests using project .venv
 set -euo pipefail
 cd "$(dirname "$0")"
 
-PYTEST_PY=""
-for p in "$HOME/AVITO-PRINTER-V2/.venv/bin/python" python3; do
-    if command -v "$p" >/dev/null 2>&1 && "$p" -m pytest --version >/dev/null 2>&1; then
-        PYTEST_PY="$p"
-        break
-    fi
-done
+VENV_PY=".venv/bin/python"
 
-if [ -z "$PYTEST_PY" ]; then
-    echo "[run_tests] pytest not found; running stdlib unittest only"
+if [ ! -x "$VENV_PY" ] || ! "$VENV_PY" -m pytest --version >/dev/null 2>&1; then
+    echo "[run_tests] $VENV_PY has no pytest; falling back to AVITO venv"
+    VENV_PY="$HOME/AVITO-PRINTER-V2/.venv/bin/python"
+fi
+
+if [ ! -x "$VENV_PY" ]; then
+    echo "[run_tests] no python with pytest; using unittest"
     python3 tests/test_tg_chat.py
     exit 0
 fi
 
-echo "[run_tests] using $PYTEST_PY"
-PYTHONPATH=. "$PYTEST_PY" -m pytest tests/ -v
+echo "[run_tests] using $VENV_PY"
+PYTHONPATH=. "$VENV_PY" -m pytest tests/ -v
