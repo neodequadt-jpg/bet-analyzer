@@ -670,15 +670,17 @@ def cmd_value_match(idx: int) -> str:
     for outcome, c in item["consensus"].items():
         prob = c.get("consensus_prob", 0) * 100
         odds = c.get("consensus_odds", "?")
-        lines.append(f"\u2022 {OUTCOME_LABELS.get(outcome, outcome)}: {prob:.1f}% (@{odds})")
+        label = _human_outcome(outcome, ev["home"], ev["away"])
+        lines.append(f"\u2022 {label}: {prob:.1f}% (@{odds})")
     
     lines.extend([
         "",
         "<b>Value bets:</b>",
     ])
     for vb in item["value_bets"]:
+        label = _human_outcome(vb["outcome"], ev["home"], ev["away"])
         lines.append(
-            f"\u2022 {OUTCOME_LABELS.get(vb['outcome'], vb['outcome'])} @ "
+            f"\u2022 {label} @ "
             f"{esc(vb['bookmaker'])} — odds {vb['odds']}"
             f" | EV <b>+{vb['ev'] * 100:.1f}%</b>"
             f" | Kelly {vb['kelly'] * 100:.1f}%"
@@ -757,7 +759,7 @@ def cmd_live(argv: list[str], chat_id=None) -> str:
     return "\n".join(lines)
 
 
-def cmd_value() -> str:
+def cmd_value() -> tuple[str, dict]:
     t0 = time.time()
     results = build_pipeline()
     elapsed = time.time() - t0

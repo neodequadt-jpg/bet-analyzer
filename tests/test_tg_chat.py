@@ -373,5 +373,21 @@ class TestDailyScheduler(unittest.TestCase):
         self.assertFalse(tg_bot._should_send_daily(now_msk=now2))
 
 
+class TestValueKeyboard(unittest.TestCase):
+    def test_cmd_value_returns_tuple(self):
+        result = tg_bot.cmd_value()
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(len(result), 2)
+        text, kb = result
+        self.assertIsInstance(text, str)
+        self.assertIsInstance(kb, dict)
+        self.assertIn("inline_keyboard", kb)
+
+    def test_cmd_value_match_returns_string(self):
+        out = tg_bot.cmd_value_match(0)
+        self.assertIsInstance(out, str)
+        self.assertGreater(len(out), 0)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
