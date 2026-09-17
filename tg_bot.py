@@ -568,9 +568,10 @@ def _send_daily_report():
     global _DAILY_REPORT_LAST_DATE
     now = _now_msk()
     try:
-        text = cmd_value()
+        text, kb = cmd_value()
     except Exception as e:
         text = "\u26A0\uFE0F daily report error: " + esc(str(e))[:300]
+        kb = None
     header = (
         "<b>\U0001F4CA \u0415\u0436\u0435\u0434\u043d\u0435\u0432\u043d\u044b\u0439 "
         "\u043e\u0442\u0447\u0451\u0442</b> \u2014 " + now.strftime("%d.%m.%Y %H:%M")
@@ -581,7 +582,7 @@ def _send_daily_report():
     failed = 0
     for chat_id in (TG_ADMIN_IDS or set()):
         try:
-            send_message(chat_id, full)
+            send_message(chat_id, full, reply_markup=kb)
             sent += 1
         except Exception as e:
             failed += 1
@@ -651,6 +652,38 @@ def build_pipeline(skip_stale_hours: float = 1.0):
         print(f"[build_pipeline] skipped: {skipped_stale} stale, "
               f"{skipped_thin} thin (<2 BK)", file=sys.stderr)
     return result
+
+
+def cmd_value_match(idx: int) -> str:
+    results = build_pipeline()
+    if idx < 0 or idx >= len(results):
+        return "Match not found."
+    
+    item = results[idx]
+    ev = item["event"]
+    
+    lines = [
+        f"<b>{esc(ev['home'])} vs {esc(ev['away'])}</b> ({esc(ev['league'])})",
+        "",
+        "<b>Консенсус вероятностей:</b>",
+    ]
+    for outcome, c in item["consensus"].items():
+        prob = c.get("consensus_prob", 0) * 100
+        odds = c.get("consensus_odds", "?")
+        lines.append(f"\u2022 {OUTCOME_LABELS.get(outcome, outcome)}: {prob:.1f}% (@{odds})")
+    
+    lines.extend([
+        "",
+        "<b>Value bets:</b>",
+    ])
+    for vb in item["value_bets"]:
+        lines.append(
+            f"\u2022 {OUTCOME_LABELS.get(vb['outcome'], vb['outcome'])} @ "
+            f"{esc(vb['bookmaker'])} — odds {vb['odds']}"
+            f" | EV <b>+{vb['ev'] * 100:.1f}%</b>"
+            f" | Kelly {vb['kelly'] * 100:.1f}%"
+        )
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -736,10 +769,20 @@ def cmd_value() -> str:
         f"<b>Value analysis</b> \u2014 {n_matches} matches, {n_bets} value bets "
         f"({elapsed:.1f}s)"
     ]
-    for item in results:
+    
+    inline_keyboard = []
+    
+    for idx, item in enumerate(results):
+        ev = item["event"]
+        
+        # Add button for this match
+        inline_keyboard.append([{
+            "text": f"📊 {ev['home']} vs {ev['away']}",
+            "callback_data": f"/value_match {idx}"
+        }])
+
         if not item["value_bets"]:
             continue
-        ev = item["event"]
         lines.append("")
         lines.append(
             f"\U0001F3C6 <b>{esc(ev['home'])}</b> vs <b>{esc(ev['away'])}</b> "
@@ -758,7 +801,8 @@ def cmd_value() -> str:
     if n_bets == 0:
         lines.append("")
         lines.append("No value bets found \u2014 market is efficient.")
-    return "\n".join(lines)
+    
+    return "\n".join(lines), {"inline_keyboard": inline_keyboard}
 
 
 def cmd_express() -> str:
@@ -1109,7 +1153,9 @@ def dispatch(command: str) -> str:
     if command in ("/start", "/help"):
         return WELCOME_TEXT
     if command == "/value":
-        return cmd_value()
+        text, kb = cmd_value()
+        send_message(chat_id, text, reply_markup=kb)
+        return
     if command == "/express":
         return cmd_express()
     if command == "/report":
@@ -1153,7 +1199,21 @@ def _handle_callback(cb):
             _t(chat_id, "lang_switched"),
             reply_markup=get_main_keyboard(chat_id))
         return
+    if data.startswith("/value_match"):
+        try:
+            parts = data.split()
+            idx = int(parts[1])
+            reply = cmd_value_match(idx)
+        except Exception as e:
+            reply = "\u26A0\ufe0f error: " + esc(str(e))[:400]
+        send_message(chat_id, reply, reply_markup=get_main_keyboard(chat_id))
+        return
+
     command = data.split()[0].split("@")[0].lower()
+    if command == "/value":
+        text, kb = cmd_value()
+        send_message(chat_id, text, reply_markup=kb)
+        return
     if command == "/live":
         _LAST_LIVE_ARGV = data.split()[1:]
     try:
@@ -1194,10 +1254,10 @@ def handle(update):
     if command == "/daily":
         send_message(chat_id, "\U0001F4CA \u0421\u043e\u0431\u0438\u0440\u0430\u044e \u043e\u0442\u0447\u0451\u0442...")
         try:
-            reply = cmd_value()
+            text, kb = cmd_value()
+            send_message(chat_id, text, reply_markup=kb)
         except Exception as e:
-            reply = "\u26A0\uFE0F error: " + esc(str(e))[:300]
-        send_message(chat_id, reply)
+            send_message(chat_id, "\u26A0\uFE0F error: " + esc(str(e))[:300])
         return
     if command == "/reset":
         CHAT_HISTORY.pop(chat_id, None)

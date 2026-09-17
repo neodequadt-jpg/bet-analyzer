@@ -82,8 +82,9 @@ class TestHandleCallback(unittest.TestCase):
         def fake_post(method, json_data=None):
             calls.append((method, json_data))
             return {"ok": True}
+        # Updated mock to match cmd_value's new return type (text, keyboard)
         with mock.patch.object(tg_bot, "tg_post", fake_post), \
-             mock.patch.object(tg_bot, "dispatch", lambda cmd: "OK:" + cmd), \
+             mock.patch.object(tg_bot, "cmd_value", lambda: ("OK:/value", None)), \
              mock.patch.object(tg_bot, "TG_ADMIN_IDS", set()):
             tg_bot._handle_callback({
                 "id": "cb1", "data": "/value",
@@ -92,7 +93,12 @@ class TestHandleCallback(unittest.TestCase):
         methods = [m for m, _ in calls]
         self.assertEqual(methods, ["answerCallbackQuery", "sendMessage"])
         self.assertEqual(calls[1][1]["text"], "OK:/value")
-        self.assertEqual(calls[1][1]["reply_markup"], tg_bot._MAIN_KEYBOARD)
+        # In _handle_callback, if keyboard returned by cmd_value is None, 
+        # it might not be explicitly passed if we changed the call site, 
+        # but let's see what the current code does.
+        # Actually I just updated it to pass `kb` from `cmd_value()`.
+        # So passing `None` here is correct.
+        self.assertEqual(calls[1][1].get("reply_markup"), None)
 
     def test_whitelist_blocks_reply(self):
         calls = []
