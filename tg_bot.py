@@ -528,6 +528,41 @@ def _should_send_daily(now_msk=None):
     return now >= target
 
 
+DAILY_STATE_FILE = Path(__file__).parent / "data" / "state.json"
+
+
+def _load_daily_state():
+    """Load persisted daily report date (avoid re-sending on every restart)."""
+    global _DAILY_REPORT_LAST_DATE
+    try:
+        if DAILY_STATE_FILE.exists():
+            import json as _json
+            data = _json.loads(DAILY_STATE_FILE.read_text(encoding="utf-8"))
+            date_str = data.get("daily_report_last_date")
+            if date_str:
+                from datetime import date as _date
+                _DAILY_REPORT_LAST_DATE = _date.fromisoformat(date_str)
+    except Exception:
+        pass
+
+
+def _save_daily_state():
+    """Persist daily report date."""
+    if _DAILY_REPORT_LAST_DATE is None:
+        return
+    try:
+        import json as _json
+        DAILY_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        DAILY_STATE_FILE.write_text(
+            _json.dumps({
+                "daily_report_last_date": _DAILY_REPORT_LAST_DATE.isoformat()
+            }, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
+
+
 def _send_daily_report():
     """Build pipeline, send value-bets to all whitelist users."""
     global _DAILY_REPORT_LAST_DATE
@@ -553,6 +588,7 @@ def _send_daily_report():
             print(f"[tg_bot] daily send failed for {chat_id}: "
                   f"{_sanitize_error(e)}", file=sys.stderr)
     _DAILY_REPORT_LAST_DATE = now.date()
+    _save_daily_state()
     print(f"[tg_bot] daily report sent: {sent} ok, {failed} failed")
 
 
@@ -1245,6 +1281,7 @@ def main():
     if TG_ADMIN_IDS:
         print(f"[tg_bot] chat whitelist: {sorted(TG_ADMIN_IDS)}")
 
+    _load_daily_state()
     warmup()
 
     offset = None
