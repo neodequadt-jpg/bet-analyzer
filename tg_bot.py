@@ -1276,6 +1276,11 @@ def handle(update):
         body = CHAT_SYSTEM_PROMPT[:4000] if CHAT_SYSTEM_PROMPT else "\u041f\u0440\u043e\u043c\u043f\u0442 \u043d\u0435 \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d."
         send_message(chat_id, body)
         return
+    if command == "/refresh":
+        from bookmakers.manual_refresh import refresh_manual_from_fonbet
+        res = refresh_manual_from_fonbet()
+        send_message(chat_id, f"Refresh summary: {res}")
+        return
     if command in ("/start", "/help"):
         send_message(chat_id,
             get_welcome_text(chat_id),

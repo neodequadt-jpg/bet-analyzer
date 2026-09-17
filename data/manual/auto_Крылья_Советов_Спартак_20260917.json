@@ -1,0 +1,28 @@
+{
+  "event_id": "auto_Крылья_Советов_Спартак_20260917",
+  "sport": "football",
+  "league": "RPL",
+  "home": "Крылья Советов",
+  "away": "Спартак",
+  "kickoff_iso": "1791642600",
+  "bookmakers": [
+    {
+      "name": "Фонбет",
+      "home": 4.6,
+      "draw": 3.8,
+      "away": 1.75,
+      "over": 1.85,
+      "under": 1.95,
+      "line": 2.5
+    },
+    {
+      "name": "Марафон",
+      "home": 4.74,
+      "draw": 3.88,
+      "away": 1.7,
+      "over": 1.89,
+      "under": 1.91,
+      "line": 2.5
+    }
+  ]
+}

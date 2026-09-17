@@ -1,0 +1,28 @@
+{
+  "event_id": "auto_Динамо_Махачкала_ЦСКА_20260917",
+  "sport": "football",
+  "league": "RPL",
+  "home": "Динамо Махачкала",
+  "away": "ЦСКА",
+  "kickoff_iso": "1789667100",
+  "bookmakers": [
+    {
+      "name": "Фонбет",
+      "home": 2.85,
+      "draw": 3.45,
+      "away": 2.45,
+      "over": 1.93,
+      "under": 1.87,
+      "line": 2.5
+    },
+    {
+      "name": "Марафон",
+      "home": 2.94,
+      "draw": 3.52,
+      "away": 2.38,
+      "over": 1.97,
+      "under": 1.83,
+      "line": 2.5
+    }
+  ]
+}

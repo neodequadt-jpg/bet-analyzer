@@ -1,0 +1,28 @@
+{
+  "event_id": "auto_Ахмат_Балтика_20260917",
+  "sport": "football",
+  "league": "RPL",
+  "home": "Ахмат",
+  "away": "Балтика",
+  "kickoff_iso": "1791716400",
+  "bookmakers": [
+    {
+      "name": "Фонбет",
+      "home": 2.3,
+      "draw": 3.35,
+      "away": 3.2,
+      "over": 2.25,
+      "under": 1.63,
+      "line": 2.5
+    },
+    {
+      "name": "Марафон",
+      "home": 2.37,
+      "draw": 3.42,
+      "away": 3.1,
+      "over": 2.29,
+      "under": 1.6,
+      "line": 2.5
+    }
+  ]
+}

@@ -389,5 +389,28 @@ class TestValueKeyboard(unittest.TestCase):
         self.assertGreater(len(out), 0)
 
 
+
+class TestManualRefresh(unittest.TestCase):
+    def test_refresh_returns_dict(self):
+        from bookmakers.manual_refresh import refresh_manual_from_fonbet
+        result = refresh_manual_from_fonbet(max_events=2)
+        self.assertIsInstance(result, dict)
+        for k in ("created", "updated", "skipped"):
+            self.assertIn(k, result)
+
+    def test_refresh_creates_files(self):
+        from bookmakers.manual_refresh import refresh_manual_from_fonbet
+        # Just verify no exception + state
+        result = refresh_manual_from_fonbet(max_events=1)
+        self.assertIsInstance(result, dict)
+
+    def test_auto_files_have_two_bk(self):
+        from pathlib import Path
+        import json
+        auto_files = list(Path("data/manual").glob("auto_*.json"))
+        for f in auto_files:
+            data = json.loads(f.read_text())
+            self.assertGreaterEqual(len(data.get("bookmakers", [])), 2)
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

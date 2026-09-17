@@ -1,0 +1,28 @@
+{
+  "event_id": "auto_Ростов_Динамо_Москва_20260917",
+  "sport": "football",
+  "league": "RPL",
+  "home": "Ростов",
+  "away": "Динамо Москва",
+  "kickoff_iso": "1789659000",
+  "bookmakers": [
+    {
+      "name": "Фонбет",
+      "home": 3.3,
+      "draw": 3.35,
+      "away": 2.25,
+      "over": 1.95,
+      "under": 1.85,
+      "line": 2.5
+    },
+    {
+      "name": "Марафон",
+      "home": 3.4,
+      "draw": 3.42,
+      "away": 2.18,
+      "over": 1.99,
+      "under": 1.81,
+      "line": 2.5
+    }
+  ]
+}

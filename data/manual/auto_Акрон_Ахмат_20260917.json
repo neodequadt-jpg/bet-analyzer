@@ -1,0 +1,28 @@
+{
+  "event_id": "auto_Акрон_Ахмат_20260917",
+  "sport": "football",
+  "league": "RPL",
+  "home": "Акрон",
+  "away": "Ахмат",
+  "kickoff_iso": "1789659000",
+  "bookmakers": [
+    {
+      "name": "Фонбет",
+      "home": 3.15,
+      "draw": 3.4,
+      "away": 2.3,
+      "over": 2.05,
+      "under": 1.77,
+      "line": 2.5
+    },
+    {
+      "name": "Марафон",
+      "home": 3.24,
+      "draw": 3.47,
+      "away": 2.23,
+      "over": 2.09,
+      "under": 1.73,
+      "line": 2.5
+    }
+  ]
+}

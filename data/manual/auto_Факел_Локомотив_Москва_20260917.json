@@ -1,0 +1,28 @@
+{
+  "event_id": "auto_Факел_Локомотив_Москва_20260917",
+  "sport": "football",
+  "league": "RPL",
+  "home": "Факел",
+  "away": "Локомотив Москва",
+  "kickoff_iso": "1791634500",
+  "bookmakers": [
+    {
+      "name": "Фонбет",
+      "home": 2.75,
+      "draw": 3.25,
+      "away": 2.65,
+      "over": 2.35,
+      "under": 1.6,
+      "line": 2.5
+    },
+    {
+      "name": "Марафон",
+      "home": 2.83,
+      "draw": 3.31,
+      "away": 2.57,
+      "over": 2.4,
+      "under": 1.57,
+      "line": 2.5
+    }
+  ]
+}
