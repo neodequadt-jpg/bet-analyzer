@@ -1,29 +1,25 @@
 # BET-ANALYZER — ENGINEERING MANIFEST
-# Version: BET-TG-0002
+# Version: BET-TG-0003
 # Status: ACTIVE
 # Methodology: ARTEM
 # Workspace: ~/BET-ANALYZER
+# Previous: BET-TG-0002 (see backup)
 
 ## RESTORE MODE
 mode: engineering_execution
-history: ignore
 redesign: forbidden
 roadmap: forbidden
 source_of_truth: this_manifest
 
 ## METHODOLOGY — ARTEM
-maturity_phase: implementation
 workflow:
   - One Engineering Goal
   - One Commit
   - Verification
-  - Push
+  - Report
 rules:
   - Repository Reality Rule
   - No Invented Dependencies
-  - No Manual Editing If Automation Possible
-  - Research Before Implementation
-  - Specification First
   - Evidence Before Authority
   - Reality Before Assumptions
 
@@ -34,171 +30,93 @@ branch: main
 status: ACTIVE DEVELOPMENT
 architecture: FROZEN
 
-## MISSION
-objective: >
-  Production-quality Python system for value-bet detection on legal Russian
-  bookmakers (ЦУПИС) + Telegram bot with AI chat (universal sports-betting prompt).
-output:
-  - value_bets with EV, Kelly, deal_score
-  - Telegram bot with commands + free-text AI chat
+## AI BACKEND (CURRENT)
+provider: OmniRoute v3.8.50 (http://127.0.0.1:20128/v1)
+upstream: Gemini (Google AI Studio)
+model: gemini/gemini-3.1-flash-lite-preview  # non-reasoning, fast
+auth: "Bearer sk-84454d30f22bfcb1-5d2256-72fbd6b3" (pipeline key)
+proxy: http://127.0.0.1:18080 (opera-proxy, TR exit) — required for Google API
+fallback_env: OMNI_KEY in ~/.bet_env
+dead_providers:
+  - oc/big-pickle (OpenCode free, 403 since 2026-09-17)
+  - cfp/* (Chrome can't reach Cloudflare via proxy)
+  - tllm/* (Vercel blocks RU IP)
+  - aug/*, dva/*, zc/*, ddgw/*, felo/*, pepper/*
 
-## CORE MODEL (FROZEN)
-pipeline:
-  - bookmakers/{registry,parser,manual_source,fonbet_api,normalizer}.py
-  - market/consensus.py (leave-one-out, margin removal)
-  - scoring/ev.py (EV, Kelly, deal_score, per-sport cap)
-  - ai/{client,analyst,express_builder,express_prompt}.py
-  - tg_bot.py (requests + stdlib, NO aiogram)
-  - prompts/sports_betting_ru.txt (AI chat system prompt)
-
-## CONSTRAINTS
-constraints:
-  - Telegram API: only via proxy http://127.0.0.1:18080 (opera-proxy)
-  - OmniRoute: http://127.0.0.1:20128/v1/chat/completions (no proxy, no_proxy=127.0.0.1)
-  - Model: oc/big-pickle
-  - BOT_TOKEN in ~/.bet_env (chmod 600), NEVER in chat/git
-  - TG_ADMIN_ID optional whitelist
-  - Python: system python3 (3.11), NO venv yet
-  - Dependencies: requests + stdlib only. NO aiogram.
+## BOT RUNTIME
+bot: @bet_analyzer_anrhytm_bot (id 8165315037)
+BOT_TOKEN: stored in ~/.bet_env (chmod 600), rotated on compromise
+TG_ADMIN_ID: 3 users in whitelist (see ~/.bet_env)
+proxy_env for bot: http_proxy=http://127.0.0.1:18080 (NOT 8118, NOT socks 9050)
+tg_bot.py: stdlib + requests, NO aiogram
 
 ## VERIFIED COMPONENTS
 verified:
-  - name: OmniRoute
-    status: WORKING
-    endpoint: http://127.0.0.1:20128/v1/chat/completions
-    model: oc/big-pickle
-  - name: proxy 18080
-    status: WORKING
-    notes: opera-proxy, pid varies
-  - name: tg_bot.py
-    status: WORKING
-    notes: requests long-polling, warmup(), retry, whitelist, chunk_text
-  - name: AI chat (free-text)
-    status: WORKING
-    notes: ai_chat() with CHAT_SYSTEM_PROMPT, CHAT_HISTORY (12 msgs)
-  - name: commands
-    status: WORKING
-    notes: /start /help /value /express /report /status /whoami /reset /prompt
-  - name: pipeline (manual/fonbet/hybrid)
-    status: WORKING
-    notes: value-bets fire on mock/manual
-  - name: prompts/sports_betting_ru.txt
-    status: WORKING
-    notes: 1708 chars, universal sports-betting prompt
+  - AI chat (Gemini): WORKING — reply ~150-300 chars, RU+EN
+  - RAG live-data injection: WORKING — fetches Fonbet events on "express + sport"
+  - /live <sport> <hours>: WORKING — 10 events, MSK time, odds
+  - /value pipeline: WORKING — RONBET+manual → consensus → EV
+  - /express, /report: WORKING (via Gemini)
+  - inline keyboard (3x2 + lang): WORKING
+  - i18n RU/EN: WORKING (menus, welcome, AI directive at END of prompt)
+  - rate limit: WORKING — 20 req/min per chat, token bucket
+  - whitelist: WORKING — 3 users, friendly rejection
+  - tests: 66 passed (48 in test_tg_chat.py + 18 in test_tg_resilience.py)
+  - sanitize error: WORKING — redacts BOT_TOKEN in logs
 
-## KNOWN ISSUES
-known_issues:
-  - BOT_TOKEN leaked in logs 3x → revoke done, new token in ~/.bet_env
-  - ai_chat() doesn't know about own commands (/value /express /report)
-  - prompt is abbreviated; full text from source not yet integrated
-  - no venv, system python3 only
+## CONSTRAINTS
+constraints:
+  - No aiogram (requests + stdlib only)
+  - OmniRoute must run with proxy 18080 (env -u all_proxy first)
+  - Gemini free tier: 15 req/min → cooldown on burst, use lite-preview
+  - DSH uses gemini/gemini-3.1-flash-lite-preview (updated in ~/.dsh/settings.yaml)
+  - Test runner: ./run_tests.sh (uses AVITO venv pytest)
+  - BOT_TOKEN never in chat/git/logs
 
 ## FILE STRUCTURE
 structure:
-  - tg_bot.py                    # Telegram bot (requests+stdlib)
-  - MANIFEST_BET_TG.md           # this manifest
-  - prompts/
-      - sports_betting_ru.txt    # AI chat system prompt
-  - ai/
-      - client.py                # OmniRoute client
-      - analyst.py               # value-bet AI report
-      - express_builder.py       # express AI builder
-      - express_prompt.py        # express prompts
-  - bookmakers/
-      - registry.py              # 11 legal RU BK
-      - parser.py                # mock
-      - manual_source.py         # data/manual/*.json
-      - fonbet_api.py            # real RPL odds
-      - normalizer.py            # merge + dedup
+  - tg_bot.py                    # bot + AI chat + commands
+  - MANIFEST_BET_TG.md           # this file
+  - prompts/sports_betting_ru.txt # 7445-char universal prompt
+  - ai/client.py, analyst.py, express_builder.py
+  - bookmakers/fonbet_api.py, fonbet_extended.py, manual_source.py, normalizer.py
   - market/consensus.py
   - scoring/ev.py
-  - runner.py
-  - data/
-      - manual/*.json            # manual events
-      - runs/*.json              # run history
+  - tests/{test_tg_chat.py, test_tg_resilience.py, conftest.py}
+  - run_tests.sh
+  - data/{manual/, cache/, runs/}
 
-## CURRENT ENGINEERING GOAL
-goal_id: G-BET-0004
-title: Deliver DSH-autonomous improvements (prompt + commands awareness)
+## CURRENT GOAL
+goal_id: G-BET-0005
+title: APScheduler-style daily report at 09:00 MSK
 status: active
 definition_of_done:
-  - prompts/sports_betting_ru.txt extended with commands section
-  - tg_bot.py /prompt shows updated prompt
-  - bot test: AI mentions /value /express /report when asked
-  - one commit, verified, pushed
+  - Send value-bets report to all whitelist users at 09:00 MSK
+  - stdlib-only (no apscheduler package)
+  - time check in main() loop
+  - 2 new tests
+  - one commit, verified
 
-## NEXT ENGINEERING STEPS (priority order)
-priority_1:
-  goal: Improve AI prompt — add commands awareness
-  action: |
-    Append to prompts/sports_betting_ru.txt section:
-    "У тебя есть команды:
-     /value — value-ставки по real-данным Fonbet
-     /express — AI-экспресс из value-bets
-     /report — AI-отчёт по топ-ставке
-     /status — статус системы
-     Упоминай их, только если пользователь спрашивает про конкретные ставки."
-  verification: |
-    curl-тест ai_chat() с вопросом "Что ты умеешь?" — должен упомянуть команды.
-
-priority_2:
-  goal: Full universal prompt from source file
-  action: |
-    Replace prompts/sports_betting_ru.txt with FULL text from user's source
-    (sections 1-11 + 10 clarifying questions). Keep formatting readable.
-  verification: |
-    /prompt in TG shows expanded prompt (>5000 chars).
-
-priority_3:
-  goal: Isolated venv for BET-ANALYZER
-  action: |
-    python3 -m venv ~/BET-ANALYZER/.venv
-    ~/BET-ANALYZER/.venv/bin/pip install requests
-    Update run command in README.md
-  verification: |
-    ~/BET-ANALYZER/.venv/bin/python -c "import requests; print('OK')"
+## NEXT STEPS (roadmap)
+priority_1: daily report at 09:00 MSK (in progress)
+priority_2: .venv for BET-ANALYZER (isolate from AVITO)
+priority_3: inline keyboard inside /value (per-match detail)
+priority_4: more sports in /live (basketball, volleyball)
 
 ## EXECUTION RULES
 communication:
   mode: maximum_engineering_density
   water: forbidden
-  philosophy: forbidden
-  motivation: forbidden
-  redesign: forbidden
-  alternatives: forbidden_unless_requested
-output_format:
-  - commands
-  - patches
-  - code
-  - verification
-  - engineering_decisions
-missing_info_rule: >
-  If information is missing, ask ONE precise question.
-  Otherwise, continue implementation immediately.
-
-## INITIAL TASK
-steps:
-  1. Verify repository reality (git log, tree, env)
-  2. Inspect tg_bot.py, prompts/sports_betting_ru.txt
-  3. Detect unfinished work
-  4. Execute priority_1 (prompt improvement)
-  5. Verification: import + ai_chat test
-  6. Commit, report
-do_not:
-  - Restart the project
-  - Rewrite completed work
-  - Redesign architecture
-  - Generate roadmaps
-  - Touch tg_bot.py unless required for priority_1
+output_format: commands, patches, code, verification
+missing_info_rule: ask ONE precise question, else continue
 
 ## SESSION START
 procedure:
   1. Load this manifest
-  2. Verify repository reality (git status, ls, ss -lntp)
+  2. Verify reality (git log, grep, ./run_tests.sh)
   3. Report restored state in ≤15 bullets
   4. Execute priority_1
   5. Report result + commit hash
 response_must_end_with:
   - ENGINEERING STATE RESTORED
-  - PRIORITY_1 EXECUTED
-  - NEXT: <state>
+  - PRIORITY_N EXECUTED
