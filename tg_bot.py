@@ -500,6 +500,70 @@ def format_express(express: dict, events_meta: dict | None = None) -> str:
 # ---------------------------------------------------------------------------
 # 4. Pipeline helper (shared by /value, /express, /report)
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Daily report scheduler (stdlib-only)
+# ---------------------------------------------------------------------------
+_DAILY_REPORT_LAST_DATE = None
+DAILY_REPORT_HOUR_MSK = 9
+DAILY_REPORT_MIN_MSK = 0
+
+
+def _now_msk():
+    """Current time in MSK (UTC+3)."""
+    return datetime.now(timezone(timedelta(hours=3)))
+
+
+def _should_send_daily(now_msk=None):
+    """True if 09:00 MSK passed today and not sent yet."""
+    global _DAILY_REPORT_LAST_DATE
+    now = now_msk or _now_msk()
+    today = now.date()
+    if _DAILY_REPORT_LAST_DATE == today:
+        return False
+    target = now.replace(hour=DAILY_REPORT_HOUR_MSK,
+                         minute=DAILY_REPORT_MIN_MSK,
+                         second=0, microsecond=0)
+    return now >= target
+
+
+def _send_daily_report():
+    """Build pipeline, send value-bets to all whitelist users."""
+    global _DAILY_REPORT_LAST_DATE
+    now = _now_msk()
+    try:
+        text = cmd_value()
+    except Exception as e:
+        text = "\u26A0\uFE0F daily report error: " + esc(str(e))[:300]
+    header = (
+        "<b>\U0001F4CA \u0415\u0436\u0435\u0434\u043d\u0435\u0432\u043d\u044b\u0439 "
+        "\u043e\u0442\u0447\u0451\u0442</b> \u2014 " + now.strftime("%d.%m.%Y %H:%M")
+        + " \u041c\u0421\u041a\n\n"
+    )
+    full = header + text
+    sent = 0
+    failed = 0
+    for chat_id in (TG_ADMIN_IDS or set()):
+        try:
+            send_message(chat_id, full)
+            sent += 1
+        except Exception as e:
+            failed += 1
+            print(f"[tg_bot] daily send failed for {chat_id}: "
+                  f"{_sanitize_error(e)}", file=sys.stderr)
+    _DAILY_REPORT_LAST_DATE = now.date()
+    print(f"[tg_bot] daily report sent: {sent} ok, {failed} failed")
+
+
+def _daily_report_loop_tick():
+    """Called from main() polling loop."""
+    try:
+        if _should_send_daily():
+            _send_daily_report()
+    except Exception as e:
+        print(f"[tg_bot] scheduler tick error: {_sanitize_error(e)}",
+              file=sys.stderr)
+
+
 def build_pipeline():
     fonbet = fetch_rpl_odds(force=True)
     manual = []
@@ -988,6 +1052,14 @@ def handle(update):
         return
     command = text.split()[0].split("@")[0].lower()
     # --- AI chat extensions ---
+    if command == "/daily":
+        send_message(chat_id, "\U0001F4CA \u0421\u043e\u0431\u0438\u0440\u0430\u044e \u043e\u0442\u0447\u0451\u0442...")
+        try:
+            reply = cmd_value()
+        except Exception as e:
+            reply = "\u26A0\uFE0F error: " + esc(str(e))[:300]
+        send_message(chat_id, reply)
+        return
     if command == "/reset":
         CHAT_HISTORY.pop(chat_id, None)
         send_message(chat_id, _t(chat_id, "reset_ok"))
@@ -1074,7 +1146,12 @@ def main():
 
     offset = None
     backoff = BACKOFF_INITIAL
+    _last_sched_check = 0.0
     while True:
+        now_mono = time.monotonic()
+        if now_mono - _last_sched_check > 60:
+            _daily_report_loop_tick()
+            _last_sched_check = now_mono
         try:
             updates = get_updates(offset)
         except Exception as e:

@@ -328,5 +328,33 @@ class TestGeminiSwitch(unittest.TestCase):
         self.assertTrue(tg_bot.OMNI_KEY.startswith("sk-"))
 
 
+class TestDailyScheduler(unittest.TestCase):
+    """Daily report scheduler (stdlib-only)."""
+
+    def setUp(self):
+        tg_bot._DAILY_REPORT_LAST_DATE = None
+
+    def test_should_send_before_9am(self):
+        from datetime import datetime, timezone, timedelta
+        msk = timezone(timedelta(hours=3))
+        now = datetime(2026, 9, 17, 8, 30, tzinfo=msk)
+        self.assertFalse(tg_bot._should_send_daily(now_msk=now))
+
+    def test_should_send_after_9am(self):
+        from datetime import datetime, timezone, timedelta
+        msk = timezone(timedelta(hours=3))
+        now = datetime(2026, 9, 17, 9, 5, tzinfo=msk)
+        self.assertTrue(tg_bot._should_send_daily(now_msk=now))
+
+    def test_should_not_send_twice_same_day(self):
+        from datetime import datetime, timezone, timedelta
+        msk = timezone(timedelta(hours=3))
+        now1 = datetime(2026, 9, 17, 9, 5, tzinfo=msk)
+        self.assertTrue(tg_bot._should_send_daily(now_msk=now1))
+        tg_bot._DAILY_REPORT_LAST_DATE = now1.date()
+        now2 = datetime(2026, 9, 17, 10, 0, tzinfo=msk)
+        self.assertFalse(tg_bot._should_send_daily(now_msk=now2))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
