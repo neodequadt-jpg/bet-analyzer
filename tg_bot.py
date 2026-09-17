@@ -564,15 +564,41 @@ def _daily_report_loop_tick():
               file=sys.stderr)
 
 
-def build_pipeline():
+def _parse_kickoff_ts(raw) -> int:
+    """Parse kickoff into Unix timestamp. Returns 0 if unparseable."""
+    if raw is None or raw == "":
+        return 0
+    s_raw = str(raw).strip()
+    if s_raw.isdigit():
+        return int(s_raw)
+    try:
+        from datetime import datetime as _dt
+        dt = _dt.fromisoformat(s_raw.replace("Z", "+00:00"))
+        return int(dt.timestamp())
+    except Exception:
+        return 0
+
+
+def build_pipeline(skip_stale_hours: float = 1.0):
+    """Build pipeline. Skip matches whose kickoff < now - skip_stale_hours."""
     fonbet = fetch_rpl_odds(force=True)
     manual = []
     for eid in list_manual_events():
         manual.extend(parse_manual(eid))
     groups = merge(fonbet, manual)
+
+    cutoff_ts = time.time() - (skip_stale_hours * 3600)
+
     result = []  # list of {event, consensus, value_bets}
+    skipped_stale = 0
+    skipped_thin = 0
     for g in groups:
-        if len(g) < 3:
+        if len(g) < 2:
+            skipped_thin += 1
+            continue
+        k_ts = _parse_kickoff_ts(g[0].kickoff_iso)
+        if k_ts > 0 and k_ts < cutoff_ts:
+            skipped_stale += 1
             continue
         market = evaluate_event(g)
         if market.get("status") != "ok":
@@ -583,6 +609,9 @@ def build_pipeline():
             "consensus": market["consensus"],
             "value_bets": [vb.__dict__ for vb in vbs],
         })
+    if skipped_stale or skipped_thin:
+        print(f"[build_pipeline] skipped: {skipped_stale} stale, "
+              f"{skipped_thin} thin (<2 BK)", file=sys.stderr)
     return result
 
 
@@ -697,6 +726,24 @@ def cmd_value() -> str:
 def cmd_express() -> str:
     """Build express via AI. If value-bets < 2, fallback to market consensus picks."""
     results = build_pipeline()
+
+    if len(results) < 2:
+        n = len(results)
+        word = "матч" if n == 1 else "матчей"
+        detail = f"Сейчас в pipeline {n} {word} — мало для экспресса (нужно 2+)."
+        return (
+            "<b>\U0001F3AF \u042d\u043a\u0441\u043f\u0440\u0435\u0441\u0441</b>\n\n"
+            + detail
+            + "\n\n"
+            "\u041f\u043e\u0447\u0435\u043c\u0443 \u0442\u0430\u043a:\n"
+            "\u2022 \u0411\u043e\u043b\u044c\u0448\u0438\u043d\u0441\u0442\u0432\u043e \u043c\u0430\u0442\u0447\u0435\u0439 \u0438\u0434\u0451\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0442 Fonbet (1 \u0411\u041a)\n"
+            "\u2022 \u0412\u0430\u043b\u044e-\u0441\u0442\u0430\u0432\u043a\u0438 \u0442\u0440\u0435\u0431\u0443\u044e\u0442 2+ \u0411\u041a \u0434\u043b\u044f consensus\n"
+            "\u2022 Manual-\u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a \u0441\u043e\u0434\u0435\u0440\u0436\u0438\u0442 \u0443\u0441\u0442\u0430\u0440\u0435\u0432\u0448\u0438\u0435 \u043c\u0430\u0442\u0447\u0438 (2026-09-15)\n\n"
+            "<b>\u0410\u043b\u044c\u0442\u0435\u0440\u043d\u0430\u0442\u0438\u0432\u044b:</b>\n"
+            "\u2022 /live tt 1 \u2014 live-\u043c\u0430\u0442\u0447\u0438 \u043d\u0430\u0441\u0442\u043e\u043b\u044c\u043d\u043e\u0433\u043e \u0442\u0435\u043d\u043d\u0438\u0441\u0430\n"
+            "\u2022 /live football 2 \u2014 \u0444\u0443\u0442\u0431\u043e\u043b \u043d\u0430 2 \u0447\u0430\u0441\u0430\n"
+            "\u2022 /value \u2014 value-\u0441\u0442\u0430\u0432\u043a\u0438 \u043f\u043e \u0420\u041f\u041b\n"
+        )
 
     all_vbs = []
     events_meta = {}
