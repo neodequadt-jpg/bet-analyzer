@@ -29,6 +29,10 @@ SPORT_ALIASES: dict[str, int] = {
     "\u043f\u0438\u043d\u0433-\u043f\u043e\u043d\u0433": 3088,          # пинг-понг
     "esports": 29086,
     "\u043a\u0438\u0431\u0435\u0440\u0441\u043f\u043e\u0440\u0442": 29086,  # киберспорт
+    "basketball": 3,
+    "\u0431\u0430\u0441\u043a\u0435\u0442\u0431\u043e\u043b": 3,
+    "volleyball": 9,
+    "\u0432\u043e\u043b\u0435\u0439\u0431\u043e\u043b": 9,
 }
 
 # Events starting up to 5 minutes in the past are still "upcoming" (tolerance).

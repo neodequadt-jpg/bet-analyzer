@@ -126,6 +126,17 @@ class TestLiveCommand(unittest.TestCase):
         self.assertIsNone(tg_bot.resolve_sport("nonsense"))
         self.assertIsNone(tg_bot.resolve_sport(""))
 
+    def test_resolve_basketball(self):
+        from bookmakers.fonbet_extended import resolve_sport
+        self.assertEqual(resolve_sport("basketball"), 3)
+        self.assertEqual(resolve_sport("баскетбол"), 3)
+
+    def test_resolve_volleyball(self):
+        from bookmakers.fonbet_extended import resolve_sport
+        self.assertEqual(resolve_sport("volleyball"), 9)
+        self.assertEqual(resolve_sport("волейбол"), 9)
+
+
     def test_cmd_live_usage_hint(self):
         out = tg_bot.cmd_live(["nonsense"])
         self.assertIn("\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435", out)

@@ -262,7 +262,7 @@ def get_welcome_text(chat_id) -> str:
         "/value \u2014 value bets\n",
         "/express \u2014 AI express\n",
         "/report \u2014 AI report\n",
-        "/live &lt;sport&gt; &lt;hours&gt; \u2014 upcoming matches (tt/football/hockey/tennis/esports)\n",
+        "/live &lt;sport&gt; &lt;hours&gt; \u2014 upcoming matches (tt/football/hockey/tennis/esports/basketball/volleyball)\n",
         "/status \u2014 system status\n",
         "/whoami \u2014 my chat_id\n",
         "/reset \u2014 clear AI history\n",
@@ -462,7 +462,9 @@ def format_express(express: dict, events_meta: dict | None = None) -> str:
         meta_by_label[label] = m
 
     parts = [
-        f"\U0001F3AF <b>ЭКСПРЕСС</b> ({len(legs)} исходов)",
+        f"\U0001F3AF <b>ЭКСПРЕСС</b> ({len(legs)} "
+        + ("исход" if len(legs) == 1 else "исхода" if 2 <= len(legs) <= 4 else "исходов")
+        + ")",
         "",
     ]
     for idx, leg in enumerate(legs, start=1):
@@ -593,7 +595,7 @@ def build_pipeline(skip_stale_hours: float = 1.0):
     skipped_stale = 0
     skipped_thin = 0
     for g in groups:
-        if len(g) < 2:
+        if len(g) < 1:
             skipped_thin += 1
             continue
         k_ts = _parse_kickoff_ts(g[0].kickoff_iso)
@@ -789,6 +791,60 @@ def cmd_express() -> str:
     fallback.sort(key=lambda x: x["deal_score"], reverse=True)
 
     express = ExpressBuilder().build(all_vbs, events_meta, fallback_candidates=fallback)
+
+    # Deterministic favorites fallback: if AI refused but we have >=2 matches,
+    # build express from lowest-odds (favorites) ourselves.
+    if len(express.get("legs") or []) < 2 and len(results) >= 2:
+        legs = []
+        seen = set()
+        for item in results:
+            if len(legs) >= 3:
+                break
+            ev = item["event"]
+            label = f"{ev['home']} vs {ev['away']}"
+            if label in seen:
+                continue
+            best = None
+            for outcome, c in item["consensus"].items():
+                co = c.get("consensus_odds")
+                if co and (best is None or co < best["odds"]):
+                    best = {
+                        "outcome": outcome,
+                        "odds": co,
+                        "bookmaker": "consensus",
+                        "confidence": c.get("confidence", 0),
+                    }
+            if best:
+                legs.append({
+                    "event": label,
+                    "outcome": best["outcome"],
+                    "bookmaker": best["bookmaker"],
+                    "odds": best["odds"],
+                    "ev": 0.0,
+                    "deal_score": int((best.get("confidence") or 0) * 100),
+                })
+                seen.add(label)
+
+        if len(legs) >= 2:
+            total_odds = 1.0
+            for leg in legs:
+                try:
+                    total_odds *= float(leg["odds"])
+                except (TypeError, ValueError):
+                    pass
+            express = {
+                "legs": legs,
+                "total_odds": round(total_odds, 2),
+                "total_ev": 0.0,
+                "stake_pct": 0.5,
+                "rationale": (
+                    "Экспресс по фаворитам из линии Fonbet. "
+                    "AI не собрал через value-канал (нет consensus из 2+ БК), "
+                    "поэтому выбран детерминированный вариант — "
+                    "наименьшие кэфы (фавориты) в каждом матче."
+                ),
+            }
+
     return format_express(express, events_meta)
 
 def cmd_report() -> str:
