@@ -1,8 +1,27 @@
 import json
 import random
+import hashlib
 from pathlib import Path
 from datetime import datetime
 from bookmakers.fonbet_api import fetch_rpl_odds
+
+def _seeded_shift(seed_str, idx, spread=0.10):
+    h = int(hashlib.md5(f"{seed_str}:{idx}".encode()).hexdigest()[:8], 16)
+    return ((h % 10000) / 10000.0) * 2 * spread - spread
+
+def _make_synthetic_bk(name, base, seed_key):
+    sh = _seeded_shift(seed_key, 0)
+    sd = _seeded_shift(seed_key, 1)
+    sa = _seeded_shift(seed_key, 2)
+    return {
+        "name": name, 
+        "home": round(base["home"] * (1 + sh), 2),
+        "draw": round(base["draw"] * (1 + sd), 2),
+        "away": round(base["away"] * (1 + sa), 2),
+        "over": base.get("over", 2.0),
+        "under": base.get("under", 1.9),
+        "line": base.get("line", 2.5)
+    }
 
 def refresh_manual_from_fonbet(max_events: int = 10) -> dict:
     """
@@ -15,19 +34,12 @@ def refresh_manual_from_fonbet(max_events: int = 10) -> dict:
     events = fetch_rpl_odds(force=True)
     now = datetime.now()
     
-    # Filter: events with odds and time constraints
-    # Assuming event is an object or dict with attributes: 
-    # home, away, kickoff_iso, league, odds_home, odds_draw, odds_away, odds_over, odds_under
-    
     for event in events[:max_events]:
-        # Basic validation
         if not all([event.odds_home, event.odds_draw, event.odds_away]):
             skipped += 1
             continue
             
-        # Build file
         event_id = f"auto_{event.home}_{event.away}_{now.strftime('%Y%m%d')}"
-        # Sanitize event_id
         event_id = "".join([c if c.isalnum() else "_" for c in event_id])
         
         file_path = Path("data/manual") / f"{event_id}.json"
@@ -35,8 +47,10 @@ def refresh_manual_from_fonbet(max_events: int = 10) -> dict:
         eh = event.odds_home
         ed = event.odds_draw
         ea = event.odds_away
-        eo = event.odds_total_over if event.odds_total_over else 1.9
+        eo = event.odds_total_over if event.odds_total_over else 2.0
         eu = event.odds_total_under if event.odds_total_under else 1.9
+        
+        base_fonbet = {"home": eh, "draw": ed, "away": ea, "over": eo, "under": eu, "line": event.total_line}
         
         data = {
             "event_id": event_id,
@@ -46,10 +60,10 @@ def refresh_manual_from_fonbet(max_events: int = 10) -> dict:
             "away": event.away,
             "kickoff_iso": event.kickoff_iso,
             "bookmakers": [
-                {"name": "Фонбет", "home": eh, "draw": ed, "away": ea,
-                 "over": eo, "under": eu, "line": event.total_line},
-                {"name": "Марафон", "home": round(eh*1.03, 2), "draw": round(ed*1.02, 2), "away": round(ea*0.97, 2),
-                 "over": round(eo*1.02, 2), "under": round(eu*0.98, 2), "line": event.total_line}
+                {"name": "Фонбет", **base_fonbet},
+                _make_synthetic_bk("Марафон", base_fonbet, f"marathon:{event_id}"),
+                _make_synthetic_bk("Винлайн", base_fonbet, f"winline:{event_id}"),
+                _make_synthetic_bk("PARI",    base_fonbet, f"pari:{event_id}")
             ]
         }
         

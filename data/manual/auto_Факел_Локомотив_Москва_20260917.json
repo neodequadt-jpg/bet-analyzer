@@ -17,11 +17,29 @@
     },
     {
       "name": "Марафон",
-      "home": 2.83,
-      "draw": 3.31,
-      "away": 2.57,
-      "over": 2.4,
-      "under": 1.57,
+      "home": 2.89,
+      "draw": 3.53,
+      "away": 2.59,
+      "over": 2.35,
+      "under": 1.6,
+      "line": 2.5
+    },
+    {
+      "name": "Винлайн",
+      "home": 2.7,
+      "draw": 2.96,
+      "away": 2.89,
+      "over": 2.35,
+      "under": 1.6,
+      "line": 2.5
+    },
+    {
+      "name": "PARI",
+      "home": 2.7,
+      "draw": 3.33,
+      "away": 2.61,
+      "over": 2.35,
+      "under": 1.6,
       "line": 2.5
     }
   ]

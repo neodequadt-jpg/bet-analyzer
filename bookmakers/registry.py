@@ -20,11 +20,11 @@ class BookmakerInfo:
 
 
 BOOKMAKERS = [
-    BookmakerInfo("Винлайн",     "Второй", 2016, "winline.ru",    4.5, 500_000,   1.5, 0.92),
+    BookmakerInfo("Винлайн",     "Первый", 2016, "winline.ru",    4.0, 500_000,   1.5, 0.85),
     BookmakerInfo("Фонбет",      "Первый", 2009, "fonbet.ru",     5.0, 1_000_000, 3.0, 0.90),
     BookmakerInfo("Лига Ставок", "Первый", 2009, "ligastavok.ru", 5.5, 500_000,   4.0, 0.88),
     BookmakerInfo("Бет Бум",     "Второй", 2017, "betboom.ru",    4.8, 300_000,   2.0, 0.87),
-    BookmakerInfo("PARI",        "Первый", 2021, "pari.ru",       5.2, 500_000,   3.5, 0.85),
+    BookmakerInfo("PARI",        "Первый", 2021, "pari.ru",       4.5, 500_000,   3.5, 0.80),
     BookmakerInfo("Бетсити",     "Второй", 2016, "betcity.ru",    5.0, 300_000,   4.5, 0.86),
     BookmakerInfo("Леон",        "Второй", 2016, "leon.ru",       5.5, 200_000,   5.0, 0.83),
     BookmakerInfo("Олимп",       "Первый", 2012, "olimp.bet",     5.3, 300_000,   5.5, 0.82),
