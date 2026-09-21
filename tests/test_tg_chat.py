@@ -443,5 +443,24 @@ class TestKickoffSorting(unittest.TestCase):
         self.assertIn('мин', s1)
         self.assertEqual(tg_bot._human_kickoff_delta(''), '')
         self.assertEqual(tg_bot._human_kickoff_delta(None), '')
+class TestTodayExpress(unittest.TestCase):
+    def test_fetch_real_today_returns_list(self):
+        from bookmakers.fonbet_extended import fetch_real_today
+        events = fetch_real_today(hours=24, max_per_sport=5)
+        self.assertIsInstance(events, list)
+        for ev in events[:3]:
+            self.assertIn('home', ev)
+            self.assertIn('odds_home', ev)
+            self.assertIn('start_ts', ev)
+            self.assertNotIn('FC 26', ev.get('league', ''))
+
+    def test_express_fallback_exists(self):
+        import tg_bot
+        self.assertTrue(hasattr(tg_bot, '_today_express_fallback'))
+        # When RPL empty: return non-empty string
+        out = tg_bot._today_express_fallback()
+        if out is not None:
+            self.assertIsInstance(out, str)
+            self.assertGreater(len(out), 50)
 if __name__ == "__main__":
     unittest.main(verbosity=2)

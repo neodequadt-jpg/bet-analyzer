@@ -112,6 +112,68 @@ def fetch_events_by_sport(sport_id: int, hours: int = 1,
     return out[:max_events]
 
 
+
+def fetch_real_today(sports=None, hours=24, max_per_sport=10):
+    """Return today's real (non-esports) events with odds across sports."""
+    if sports is None:
+        sports = {1: 'football', 2: 'hockey', 3088: 'tt'}
+    data = fetch_list_base()
+    sports_meta = {s['id']: s.get('name', '') for s in data.get('sports', [])}
+    events = data.get('events', [])
+    custom = {c['e']: c for c in data.get('customFactors', [])}
+    now = time.time()
+    cutoff = now + hours * 3600
+
+    def _is_esports(name):
+        if not name: return False
+        low = name.lower()
+        return any(x in low for x in ('fc 26', 'fc26', 'esports', 'кибер', 'fifa', 'efootball'))
+
+    # Build segment -> sport_id map
+    seg_to_sport = {}
+    for s in data.get('sports', []):
+        if s.get('kind') == 'segment' and s.get('parentId') in sports:
+            seg_to_sport[s['id']] = s['parentId']
+
+    result = []
+    by_sport = {}
+    for e in events:
+        seg_id = e.get('sportId')
+        sport_id = seg_to_sport.get(seg_id)
+        if sport_id is None: continue
+        if e.get('kind') != 1 or e.get('level') != 1: continue
+        seg_name = sports_meta.get(seg_id, '')
+        if _is_esports(seg_name): continue
+        ts = e.get('startTime')
+        if not ts: continue
+        try: tsi = int(ts)
+        except: continue
+        if not (now <= tsi <= cutoff): continue
+        # odds from customFactors (f=921 home, 923 away)
+        cf = custom.get(e['id'])
+        if not cf: continue
+        odds = {f.get('f'): f.get('v') for f in cf.get('factors', [])}
+        home_o = odds.get(F_HOME)
+        away_o = odds.get(F_AWAY)
+        if not home_o or not away_o: continue
+        key = sport_id
+        by_sport.setdefault(key, 0)
+        if by_sport[key] >= max_per_sport: continue
+        by_sport[key] += 1
+        result.append({
+            'id': e['id'],
+            'sport': sports.get(sport_id, 'sport'),
+            'league': seg_name,
+            'home': e.get('team1', ''),
+            'away': e.get('team2', ''),
+            'start_ts': tsi,
+            'odds_home': home_o,
+            'odds_away': away_o,
+        })
+    result.sort(key=lambda x: x['start_ts'])
+    return result
+
+
 if __name__ == "__main__":
     events = fetch_events_by_sport(3088, hours=2)
     print(f"TT events: {len(events)}")
