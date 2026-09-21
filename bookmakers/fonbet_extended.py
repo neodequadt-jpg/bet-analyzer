@@ -46,6 +46,17 @@ def resolve_sport(token: str) -> int | None:
     return SPORT_ALIASES.get(str(token).strip().lower())
 
 
+def _is_esports_segment(name: str) -> bool:
+    """True if segment is esports (FC 26, кибер) - not a real sport."""
+    if not name:
+        return False
+    low = name.lower()
+    return any(x in low for x in (
+        'fc 26', 'fc26', 'fc 25', 'fc25', 'esports', 'кибер',
+        'fifa', 'efootball', 'nba 2k', 'cyber', 'esportsbattle',
+    ))
+
+
 def fetch_events_by_sport(sport_id: int, hours: int = 1,
                           max_events: int = 10) -> list[dict]:
     """Top-level events of `sport_id` within the next `hours` hours.
@@ -79,6 +90,10 @@ def fetch_events_by_sport(sport_id: int, hours: int = 1,
     out: list[dict] = []
     for e in data.get("events", []):
         if e.get("kind") != 1 or e.get("level") != 1:
+            continue
+        # Skip esports (FC 26, кибер)
+        _seg_name = name_map.get(e.get("sportId"), "")
+        if _is_esports_segment(_seg_name):
             continue
         if e.get("sportId") not in segment_ids:
             continue

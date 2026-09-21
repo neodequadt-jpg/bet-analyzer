@@ -238,7 +238,7 @@ def get_main_keyboard(chat_id) -> dict:
         "inline_keyboard": [
             [
                 {"text": _t(chat_id, "kb_express"), "callback_data": "/express"},
-                {"text": _t(chat_id, "kb_live"),    "callback_data": "/live tt 1"},
+                {"text": "\U0001F534 Live",        "callback_data": "live_sport:root"},
             ],
             [
                 {"text": _t(chat_id, "kb_value"),  "callback_data": "/value"},
@@ -1339,6 +1339,68 @@ def _handle_callback(cb):
         return
     global _LAST_LIVE_ARGV, _LAST_CHAT_ID
     _LAST_CHAT_ID = chat_id
+
+    # ---- Live submenu ----
+    if data == "back:main":
+        send_message(chat_id,
+            _t(chat_id, "welcome_title") or "\u0413\u043b\u0430\u0432\u043d\u043e\u0435 \u043c\u0435\u043d\u044e",
+            reply_markup=get_main_keyboard(chat_id))
+        return
+    if data == "back:sports":
+        from live_menu import sport_keyboard
+        send_message(chat_id,
+            "\U0001F534 <b>Live \u2014 \u0432\u044b\u0431\u0435\u0440\u0438 \u0441\u043f\u043e\u0440\u0442</b>",
+            reply_markup=sport_keyboard())
+        return
+    if data == "live_sport:root":
+        from live_menu import sport_keyboard
+        send_message(chat_id,
+            "\U0001F534 <b>Live \u2014 \u0432\u044b\u0431\u0435\u0440\u0438 \u0441\u043f\u043e\u0440\u0442</b>",
+            reply_markup=sport_keyboard())
+        return
+    if data.startswith("live_sport:"):
+        sport = data.split(":", 1)[1]
+        from live_menu import time_keyboard
+        sport_names = {
+            "tt": "\U0001F3D3 TT",
+            "football": "\u26bd \u0424\u0443\u0442\u0431\u043e\u043b",
+            "hockey": "\U0001F3D2 \u0425\u043e\u043a\u043a\u0435\u0439",
+            "tennis": "\U0001F3BE \u0422\u0435\u043d\u043d\u0438\u0441",
+            "basketball": "\U0001F3C0 \u0411\u0430\u0441\u043a\u0435\u0442",
+            "volleyball": "\U0001F3D0 \u0412\u043e\u043b\u0435\u0439",
+            "all": "\U0001F30D \u0412\u0441\u0435 \u0441\u043f\u043e\u0440\u0442\u044b",
+        }
+        label = sport_names.get(sport, sport)
+        send_message(chat_id,
+            f"{label} \u2014 \u0432\u044b\u0431\u0435\u0440\u0438 \u043e\u043a\u043d\u043e:",
+            reply_markup=time_keyboard(sport))
+        return
+    if data.startswith("live_run:"):
+        try:
+            _, sport, hours_s = data.split(":")
+            hours = int(hours_s)
+        except Exception:
+            return
+        from live_menu import fetch_matches, format_matches, result_keyboard
+        events = fetch_matches(sport, hours)
+        text = format_matches(events, sport, hours)
+        send_message(chat_id, text,
+                     reply_markup=result_keyboard(sport, hours))
+        return
+    if data.startswith("live_express:"):
+        try:
+            _, sport, hours_s = data.split(":")
+            hours = int(hours_s)
+        except Exception:
+            return
+        from live_menu import fetch_matches, build_express
+        events = fetch_matches(sport, hours)
+        reply = build_express(events, sport, hours)
+        if not reply:
+            reply = "\u26a0\ufe0f \u041d\u0435 \u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e \u043c\u0430\u0442\u0447\u0435\u0439 \u0441 \u043a\u044d\u0444\u0430\u043c\u0438 \u0434\u043b\u044f \u044d\u043a\u0441\u043f\u0440\u0435\u0441\u0441\u0430."
+        send_message(chat_id, reply, reply_markup=get_main_keyboard(chat_id))
+        return
+
     if data == "/lang":
         _set_lang(chat_id, None)
         send_message(chat_id,
