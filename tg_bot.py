@@ -1248,6 +1248,45 @@ def _format_live_context(events, hours):
     return "\n".join(lines)
 
 
+_SPORTS_RAG_KEYWORDS = (
+    "форма", "статистика", "результат", "последние матчи",
+    "xg", "голы", "фаворит", "прогноз",
+    "премьер-лига", "ла лига", "серия а", "бундеслига", "лига 1",
+    "челси", "арсенал", "ливерпуль", "манчестер",
+    "реал", "барселона", "атлетико", "бавария", "боруссия",
+)
+
+def _detect_sports_rag(text: str) -> bool:
+    if not text:
+        return False
+    low = text.lower()
+    return any(kw in low for kw in _SPORTS_RAG_KEYWORDS)
+
+def _format_sports_context(events, hours=72) -> str:
+    if not events:
+        return ""
+    from datetime import datetime, timezone, timedelta
+    msk = timezone(timedelta(hours=3))
+    top_kw = ("Премьер-Лига", "Примера", "Серия А", "Бундеслига", "Лига 1", "Лига Чемпионов")
+    top_ev = [e for e in events if any(k in (e.league or "") for k in top_kw)]
+    other_ev = [e for e in events if e not in top_ev]
+    lines = [f"АКТУАЛЬНЫЕ СПОРТИВНЫЕ ДАННЫЕ (окно {hours}ч):", ""]
+    if top_ev:
+        lines.append("ТОП-ЛИГИ:")
+        for e in top_ev[:15]:
+            dt = datetime.fromtimestamp(e.start_ts, tz=msk)
+            lines.append(f"  {dt:%d.%m %H:%M} {e.home} vs {e.away} ({e.league})")
+        lines.append("")
+    if other_ev:
+        lines.append(f"БЛИЖАЙШИЕ ({len(other_ev)}):")
+        for e in other_ev[:8]:
+            dt = datetime.fromtimestamp(e.start_ts, tz=msk)
+            lines.append(f"  {dt:%d.%m %H:%M} {e.home} vs {e.away} ({e.league})")
+        lines.append("")
+    lines.append("На основе этих данных отвечай на вопросы о командах, форме, фаворитах.")
+    return "\n".join(lines)
+
+
 def ai_chat(chat_id, user_text: str) -> str:
     """Free-text AI chat via OmniRoute with universal sports-betting prompt."""
     hist = CHAT_HISTORY.setdefault(chat_id, [])
@@ -1264,6 +1303,16 @@ def ai_chat(chat_id, user_text: str) -> str:
     except Exception as _e:
         # silent fallback to plain chat on live fetch errors
         pass
+
+    if _detect_sports_rag(user_text):
+        try:
+            from sports_data.aggregator import fetch_all_events
+            sd_events = fetch_all_events(hours=168)
+            ctx = _format_sports_context(sd_events, 168)
+            if ctx:
+                system_text = (system_text + "\n\n" + ctx).strip()
+        except Exception as _e:
+            print(f"[tg_bot] sports RAG failed: {_e}", file=sys.stderr)
 
     if system_text:
         messages.append({"role": "system", "content": system_text})

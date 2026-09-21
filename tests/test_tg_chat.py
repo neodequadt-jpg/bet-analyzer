@@ -462,5 +462,30 @@ class TestTodayExpress(unittest.TestCase):
         if out is not None:
             self.assertIsInstance(out, str)
             self.assertGreater(len(out), 50)
+
+
+class TestSportsRAG(unittest.TestCase):
+    def test_detect_sports_keywords(self):
+        import tg_bot
+        self.assertTrue(tg_bot._detect_sports_rag("Какая форма у Челси?"))
+        self.assertTrue(tg_bot._detect_sports_rag("xg Арсенала?"))
+        self.assertFalse(tg_bot._detect_sports_rag("привет"))
+
+    def test_format_sports_context_empty(self):
+        import tg_bot
+        self.assertEqual(tg_bot._format_sports_context([], 72), "")
+
+    def test_format_sports_context_with_events(self):
+        import tg_bot, time
+        from sports_data.base import SportEvent
+        ev = SportEvent(id="1", sport="football",
+                        league="Англия. Премьер-Лига",
+                        home="Chelsea", away="Arsenal",
+                        start_ts=int(time.time())+3600)
+        ctx = tg_bot._format_sports_context([ev], 72)
+        self.assertIn("Chelsea", ctx)
+        self.assertIn("Премьер-Лига", ctx)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
