@@ -1,27 +1,47 @@
+"""Aggregate events from multiple sports data providers."""
 from typing import List, Optional
-from .base import SportEvent
-from . import sports_skills_provider, understat_provider, openfootball_provider
 import sys
 
-def fetch_all_events(hours: int = 24, sources: Optional[List] = None) -> List[SportEvent]:
-    """Merge events from all providers, deduplicate by (home, away, start_ts)."""
+from .base import SportEvent
+from . import openfootball_provider
+from . import thesportsdb_provider
+from . import openligadb_provider
+from . import sports_skills_provider
+
+
+DEFAULT_SOURCES = [
+    openfootball_provider,
+    thesportsdb_provider,
+    openligadb_provider,
+    sports_skills_provider,
+]
+
+
+def fetch_all_events(hours: int = 24,
+                     sources: Optional[List] = None) -> List[SportEvent]:
+    """Fetch from all providers, dedup by (home, away, hour), sort by start."""
     if sources is None:
-        sources = [sports_skills_provider, understat_provider, openfootball_provider]
-    all_events = []
+        sources = DEFAULT_SOURCES
+
+    all_events: List[SportEvent] = []
     for src in sources:
+        name = getattr(src, "__name__", str(src))
         try:
-            all_events.extend(src.fetch_events(hours=hours))
+            evs = src.fetch_events(hours=hours)
+            all_events.extend(evs)
         except Exception as e:
-            print(f"[sports_data] {src.__name__} failed: {e}", file=sys.stderr)
-    
-    # dedup
+            print(f"[sports_data] {name} failed: {e}", file=sys.stderr)
+
     seen = set()
-    unique = []
+    unique: List[SportEvent] = []
     for ev in all_events:
-        # Round timestamp to nearest hour for key (start_ts // 3600)
-        key = (ev.home.lower(), ev.away.lower(), ev.start_ts // 3600)
-        if key not in seen:
-            seen.add(key)
-            unique.append(ev)
+        key = (ev.home.lower().strip(),
+               ev.away.lower().strip(),
+               ev.start_ts // 3600)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(ev)
+
     unique.sort(key=lambda x: x.start_ts)
     return unique
