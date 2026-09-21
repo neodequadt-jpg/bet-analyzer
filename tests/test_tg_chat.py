@@ -412,5 +412,36 @@ class TestManualRefresh(unittest.TestCase):
             data = json.loads(f.read_text())
             self.assertGreaterEqual(len(data.get("bookmakers", [])), 2)
 
+
+class TestPipelineNoFutureFilter(unittest.TestCase):
+    def test_pipeline_returns_matches(self):
+        import tg_bot
+        rs = tg_bot.build_pipeline()
+        self.assertGreater(len(rs), 0, "build_pipeline returns 0 matches - future filter too strict")
+
+    def test_pipeline_has_value_bets(self):
+        import tg_bot
+        rs = tg_bot.build_pipeline()
+        total = sum(len(r["value_bets"]) for r in rs)
+        self.assertGreater(total, 0, "no value_bets after fix")
+
+    def test_marafon_in_registry(self):
+        from bookmakers.registry import get_bookmaker
+        self.assertIsNotNone(get_bookmaker("Марафон"))
+
+class TestKickoffSorting(unittest.TestCase):
+    def test_pipeline_sorted_by_kickoff(self):
+        import tg_bot
+        rs = tg_bot.build_pipeline()
+        ts = [int(r['event']['kickoff']) for r in rs if str(r['event']['kickoff']).isdigit()]
+        self.assertEqual(ts, sorted(ts), "pipeline not sorted by kickoff")
+
+    def test_human_kickoff_delta_format(self):
+        import tg_bot, time
+        now_ts = int(time.time())
+        s1 = tg_bot._human_kickoff_delta(str(now_ts + 1800))
+        self.assertIn('мин', s1)
+        self.assertEqual(tg_bot._human_kickoff_delta(''), '')
+        self.assertEqual(tg_bot._human_kickoff_delta(None), '')
 if __name__ == "__main__":
     unittest.main(verbosity=2)

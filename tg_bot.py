@@ -658,7 +658,29 @@ def build_pipeline(skip_stale_hours: float = 1.0,
     if skipped_stale or skipped_future or skipped_thin:
         print(f"[build_pipeline] skipped: {skipped_stale} stale, "
               f"{skipped_future} future, {skipped_thin} thin (<2 BK)", file=sys.stderr)
+    result.sort(key=lambda r: int(r['event']['kickoff']) if str(r['event']['kickoff']).isdigit() else 9999999999)
     return result
+
+
+def _human_kickoff_delta(kickoff_ts) -> str:
+    from datetime import datetime, timedelta, timezone
+    try:
+        tsi = int(kickoff_ts) if str(kickoff_ts).isdigit() else 0
+    except (TypeError, ValueError):
+        return ""
+    if not tsi:
+        return ""
+    msk = timezone(timedelta(hours=3))
+    now = datetime.now(msk)
+    dt = datetime.fromtimestamp(tsi, tz=msk)
+    delta_min = (dt - now).total_seconds() / 60
+    if 0 <= delta_min < 60:
+        return f"через {int(delta_min)} мин"
+    if dt.date() == now.date():
+        return f"сегодня {dt:%H:%M}"
+    if dt.date() == (now + timedelta(days=1)).date():
+        return f"завтра {dt:%H:%M}"
+    return f"{dt:%d.%m %H:%M}"
 
 
 def cmd_value_match(idx: int) -> str:
@@ -774,8 +796,9 @@ def cmd_value() -> tuple[str, dict]:
     n_matches = len(results)
     n_bets = sum(len(item["value_bets"]) for item in results)
 
+    nearest = _human_kickoff_delta(results[0]['event']['kickoff']) if results else ""
     lines = [
-        f"<b>Value analysis</b> \u2014 {n_matches} matches, {n_bets} value bets "
+        f"<b>Value analysis</b> \u2014 ближайший: {nearest} | {n_matches} matches, {n_bets} value bets "
         f"({elapsed:.1f}s)"
     ]
     
@@ -783,10 +806,11 @@ def cmd_value() -> tuple[str, dict]:
     
     for idx, item in enumerate(results):
         ev = item["event"]
+        delta = _human_kickoff_delta(ev['kickoff'])
         
         # Add button for this match
         inline_keyboard.append([{
-            "text": f"📊 {ev['home']} vs {ev['away']}",
+            "text": f"📊 {ev['home']} vs {ev['away']} ({delta})",
             "callback_data": f"/value_match {idx}"
         }])
 
@@ -795,7 +819,7 @@ def cmd_value() -> tuple[str, dict]:
         lines.append("")
         lines.append(
             f"\U0001F3C6 <b>{esc(ev['home'])}</b> vs <b>{esc(ev['away'])}</b> "
-            f"({esc(ev['league'])})"
+            f"({esc(ev['league'])}) · {delta}"
         )
         for vb in item["value_bets"]:
             lines.append(
@@ -817,8 +841,9 @@ def cmd_value() -> tuple[str, dict]:
 def cmd_express() -> str:
     """Build express via AI. If value-bets < 2, fallback to market consensus picks."""
     results = build_pipeline()
+    results_for_express = results[:3] if len(results) > 3 else results
 
-    if len(results) < 2:
+    if len(results_for_express) < 2:
         n = len(results)
         word = "матч" if n == 1 else "матчей"
         detail = f"Сейчас в pipeline {n} {word} — мало для экспресса (нужно 2+)."
