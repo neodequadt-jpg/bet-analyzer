@@ -23,7 +23,7 @@ def fetch_events(hours: int = 168) -> List[SportEvent]:
 
     for url in URLS:
         try:
-            resp = session.get(url, timeout=25)
+            resp = session.get(url, timeout=30)
             if resp.status_code != 200:
                 continue
             data = resp.json()

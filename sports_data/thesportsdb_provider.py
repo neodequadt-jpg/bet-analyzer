@@ -25,7 +25,7 @@ def fetch_events(hours: int = 72) -> List[SportEvent]:
         d = _day_str(off)
         try:
             url = f"{BASE}/eventsday.php?d={d}&s=Soccer"
-            resp = session.get(url, timeout=15)
+            resp = session.get(url, timeout=30)
             if resp.status_code != 200:
                 continue
             data = resp.json() or {}

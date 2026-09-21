@@ -20,7 +20,7 @@ def fetch_events(hours: int = 168) -> List[SportEvent]:
     for lg in LEAGUES:
         try:
             url = f"{BASE}/getmatchdata/{lg}/{year}"
-            resp = session.get(url, timeout=15)
+            resp = session.get(url, timeout=30)
             if resp.status_code != 200:
                 continue
             data = resp.json() or []
