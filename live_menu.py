@@ -35,7 +35,9 @@ def time_keyboard(sport):
     return {"inline_keyboard": [
         [{"text": "\u26a1 1 \u0447\u0430\u0441", "callback_data": f"live_run:{sport}:1"},
          {"text": "\U0001F4C5 24 \u0447\u0430\u0441\u0430", "callback_data": f"live_run:{sport}:24"}],
-        [{"text": "\U0001F4C6 72 \u0447\u0430\u0441\u0430", "callback_data": f"live_run:{sport}:72"}],
+        [{"text": "\U0001F4C6 72 \u0447\u0430\u0441\u0430", "callback_data": f"live_run:{sport}:72"},
+         {"text": "\U0001F5D3 7 \u0434\u043d\u0435\u0439", "callback_data": f"live_run:{sport}:168"}],
+        [{"text": "\U0001F4C5 30 \u0434\u043d\u0435\u0439", "callback_data": f"live_run:{sport}:720"}],
         [{"text": "\u2b05\ufe0f \u041d\u0430\u0437\u0430\u0434", "callback_data": "back:sports"}],
     ]}
 
@@ -58,7 +60,9 @@ def fetch_matches(sport, hours):
         sid = resolve_sport(sport)
         if sid is None:
             return []
-        return fetch_events_by_sport(sid, hours=hours, max_events=15)
+        # more events for larger windows
+        max_ev = 500 if hours >= 168 else max(20, hours * 3)
+        return fetch_events_by_sport(sid, hours=hours, max_events=max_ev)
     except Exception as e:
         print(f"[live_menu] fetch {sport} failed: {e}")
         return []
@@ -88,7 +92,7 @@ def format_matches(events, sport, hours):
     if not events:
         return header + "\u041c\u0430\u0442\u0447\u0435\u0439 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e."
     lines = [header]
-    for i, e in enumerate(events[:15], 1):
+    for i, e in enumerate(events, 1):
         ts = e.get("start_ts", 0)
         dt = datetime.fromtimestamp(ts, tz=MSK) if ts else None
         time_str = f"{dt:%H:%M}" if dt else "\u2014"
