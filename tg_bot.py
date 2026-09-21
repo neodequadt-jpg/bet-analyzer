@@ -839,48 +839,86 @@ def cmd_value() -> tuple[str, dict]:
 
 
 def _today_express_fallback():
-    """When RPL pipeline is empty, build express from today's real events."""
+    """Multi-source express: Fonbet today + sports_data (TheSportsDB/OpenLigaDB/openfootball)."""
     try:
         from bookmakers.fonbet_extended import fetch_real_today
     except ImportError:
-        return None
-    events = fetch_real_today(hours=24, max_per_sport=15)
+        fetch_real_today = lambda **kw: []
+
+    events = []
+    try:
+        events.extend(fetch_real_today(hours=24, max_per_sport=15))
+    except Exception as e:
+        print(f"[express] fonbet fallback failed: {e}", file=sys.stderr)
+
+    try:
+        from sports_data.aggregator import fetch_all_events
+        sd_events = fetch_all_events(hours=72)
+        for ev in sd_events:
+            events.append({
+                "id": ev.id,
+                "sport": ev.sport,
+                "league": ev.league,
+                "home": ev.home,
+                "away": ev.away,
+                "start_ts": ev.start_ts,
+                "odds_home": ev.odds_home,
+                "odds_away": ev.odds_away,
+                "source": ev.source,
+            })
+    except Exception as e:
+        print(f"[express] sports_data failed: {e}", file=sys.stderr)
+
     if len(events) < 2:
         return None
-    # score by implied prob (favorites first)
+
     scored = []
     for ev in events:
+        oh = ev.get("odds_home")
+        oa = ev.get("odds_away")
+        if not oh or not oa:
+            continue
         try:
-            implied = 1/ev['odds_home'] + 1/ev['odds_away']
-        except (ZeroDivisionError, TypeError):
+            implied = 1/float(oh) + 1/float(oa)
+        except (ZeroDivisionError, TypeError, ValueError):
             continue
         scored.append((implied, ev))
+
+    if len(scored) < 2:
+        return None
+
     scored.sort(key=lambda x: x[0])
     legs = []
+    msk = timezone(timedelta(hours=3))
     for _, ev in scored[:3]:
-        if ev['odds_home'] < ev['odds_away']:
+        oh = float(ev["odds_home"])
+        oa = float(ev["odds_away"])
+        if oh < oa:
             side = f"победа {ev['home']}"
-            odds = ev['odds_home']
+            odds = oh
         else:
             side = f"победа {ev['away']}"
-            odds = ev['odds_away']
-        msk = timezone(timedelta(hours=3))
-        dt = datetime.fromtimestamp(ev['start_ts'], tz=msk)
+            odds = oa
+        dt = datetime.fromtimestamp(ev["start_ts"], tz=msk)
+        src = ev.get("source", "")
+        bk_label = "consensus" if src == "thesportsdb" else ("Bundesliga" if src == "openligadb" else "Фонбет")
         legs.append({
-            'event': f"{ev['home']} vs {ev['away']}",
-            'outcome': side,
-            'odds': odds,
-            'bookmaker': 'Фонбет',
-            'league': ev['league'],
-            'kickoff_label': f"{dt:%d.%m %H:%M}",
+            "event": f"{ev['home']} vs {ev['away']}",
+            "outcome": side,
+            "odds": odds,
+            "bookmaker": bk_label,
+            "league": ev.get("league", ""),
+            "kickoff_label": f"{dt:%d.%m %H:%M}",
         })
+
     total_odds = 1.0
     for leg in legs:
         try:
-            total_odds *= float(leg['odds'])
+            total_odds *= float(leg["odds"])
         except (TypeError, ValueError):
             pass
-    lines = [f"\U0001F3AF <b>\u042D\u041a\u0421\u041f\u0420\u0415\u0421\u0421 \u043d\u0430 \u0441\u0435\u0433\u043e\u0434\u043d\u044f</b> ({len(legs)} \u0438\u0441\u0445\u043e\u0434\u0430)", ""]
+
+    lines = ["\U0001F3AF <b>\u042D\u041a\u0421\u041f\u0420\u0415\u0421\u0421 \u043d\u0430 \u0441\u0435\u0433\u043e\u0434\u043d\u044f</b> (" + str(len(legs)) + " \u0438\u0441\u0445\u043e\u0434\u0430)", ""]
     for i, leg in enumerate(legs, 1):
         lines.append(f"{i}. \u26bd <b>{leg['event']}</b> ({leg['kickoff_label']}) \u2014 {leg['outcome']}")
         lines.append(f"   @ {leg['bookmaker']} <b>{leg['odds']}</b>")
@@ -888,11 +926,11 @@ def _today_express_fallback():
         lines.append("")
     lines.append("\U0001F4CA <b>\u0418\u0442\u043e\u0433\u043e:</b>")
     lines.append(f"\u2022 \u041a\u043e\u044d\u0444\u0444\u0438\u0446\u0438\u0435\u043d\u0442: {round(total_odds, 2)}")
-    lines.append("\u2022 EV: 0.0% (\u0440\u044b\u043d\u043e\u0447\u043d\u044b\u0439 \u043a\u043e\u043d\u0441\u0435\u043d\u0441\u0443\u0441)")
     lines.append("\u2022 \u0420\u0430\u0437\u043c\u0435\u0440 \u0441\u0442\u0430\u0432\u043a\u0438: 0.5% \u0431\u0430\u043d\u043a\u0440\u043e\u043b\u043b\u0430")
     lines.append("")
-    lines.append("\u26a0\ufe0f \u0420\u041f\u041b \u043d\u0430 \u043f\u0430\u0443\u0437\u0435 \u0434\u043e 09.10. \u042d\u043a\u0441\u043f\u0440\u0435\u0441\u0441 \u0441\u043e\u0431\u0440\u0430\u043d \u0438\u0437 \u0441\u0435\u0433\u043e\u0434\u043d\u044f\u0448\u043d\u0438\u0445 \u043c\u0430\u0442\u0447\u0435\u0439 (\u041a\u0425\u041b, \u0412\u0425\u041b, \u041c\u0425\u041b, \u0437\u0430\u0440\u0443\u0431\u0435\u0436\u043d\u044b\u0435 \u043b\u0438\u0433\u0438).")
+    lines.append("\u26a0\ufe0f \u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438: Fonbet + TheSportsDB + OpenLigaDB + openfootball.")
     return "\n".join(lines)
+
 
 
 def cmd_express() -> str:
