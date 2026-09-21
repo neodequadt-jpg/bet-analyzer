@@ -618,18 +618,22 @@ def _parse_kickoff_ts(raw) -> int:
         return 0
 
 
-def build_pipeline(skip_stale_hours: float = 1.0):
-    """Build pipeline. Skip matches whose kickoff < now - skip_stale_hours."""
+def build_pipeline(skip_stale_hours: float = 1.0,
+                     max_ahead_hours: float = 720.0):
+    """Build pipeline. Skip matches whose kickoff < now - skip_stale_hours or > now + max_ahead_hours."""
     fonbet = fetch_rpl_odds(force=True)
     manual = []
     for eid in list_manual_events():
         manual.extend(parse_manual(eid))
     groups = merge(fonbet, manual)
 
-    cutoff_ts = time.time() - (skip_stale_hours * 3600)
+    now = time.time()
+    cutoff_ts = now - (skip_stale_hours * 3600)
+    cutoff_ahead_ts = now + (max_ahead_hours * 3600)
 
     result = []  # list of {event, consensus, value_bets}
     skipped_stale = 0
+    skipped_future = 0
     skipped_thin = 0
     for g in groups:
         if len(g) < 1:
@@ -638,6 +642,9 @@ def build_pipeline(skip_stale_hours: float = 1.0):
         k_ts = _parse_kickoff_ts(g[0].kickoff_iso)
         if k_ts > 0 and k_ts < cutoff_ts:
             skipped_stale += 1
+            continue
+        if k_ts > 0 and k_ts > cutoff_ahead_ts:
+            skipped_future += 1
             continue
         market = evaluate_event(g)
         if market.get("status") != "ok":
@@ -648,9 +655,9 @@ def build_pipeline(skip_stale_hours: float = 1.0):
             "consensus": market["consensus"],
             "value_bets": [vb.__dict__ for vb in vbs],
         })
-    if skipped_stale or skipped_thin:
+    if skipped_stale or skipped_future or skipped_thin:
         print(f"[build_pipeline] skipped: {skipped_stale} stale, "
-              f"{skipped_thin} thin (<2 BK)", file=sys.stderr)
+              f"{skipped_future} future, {skipped_thin} thin (<2 BK)", file=sys.stderr)
     return result
 
 
