@@ -1,96 +1,187 @@
+"""Auto-resolve signal results via TheSportsDB (public API key=3)."""
 import os
 import json
+import time
 import requests
-from datetime import datetime
-import re
-from bookmakers.normalizer import TEAM_ALIASES
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+from typing import Optional
 
-COUNTRY_MAP = TEAM_ALIASES
+SIGNALS_DIR = Path("data/backtest/signals")
+RESULTS_DIR = Path("data/backtest/results")
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+
+MSK = timezone(timedelta(hours=3))
+THESPORTSDB = "https://www.thesportsdb.com/api/v1/json/3"
+
+
+# RU→EN countries (only those that appear in signals)
+COUNTRY_MAP = {
+    "россия": "russia", "германия": "germany", "франция": "france",
+    "англия": "england", "испания": "spain", "италия": "italy",
+    "дания": "denmark", "уэльс": "wales", "сербия": "serbia",
+    "нидерланды": "netherlands", "австрия": "austria", "косово": "kosovo",
+    "греция": "greece", "грузия": "georgia", "украина": "ukraine",
+    "исландия": "iceland", "эстония": "estonia", "словакия": "slovakia",
+    "молдова": "moldova", "литва": "lithuania", "азербайджан": "azerbaijan",
+    "турция": "turkey", "бельгия": "belgium", "чехия": "czech republic",
+    "хорватия": "croatia", "польша": "poland",
+    "босния и герцеговина": "bosnia and herzegovina",
+    "босния": "bosnia and herzegovina",
+    "шотландия": "scotland", "португалия": "portugal", "норвегия": "norway",
+    "швеция": "sweden", "швейцария": "switzerland", "финляндия": "finland",
+    "венгрия": "hungary", "северная ирландия": "northern ireland",
+    "армения": "armenia", "латвия": "latvia", "сан-марино": "san marino",
+    "болгария": "bulgaria", "люксембург": "luxembourg",
+    "ирландия": "republic of ireland", "республика ирландия": "republic of ireland",
+    "израиль": "israel",
+}
+
 
 def _normalize(name: str) -> str:
-    return COUNTRY_MAP.get(name.lower().strip(), name.lower().strip())
+    n = (name or "").strip().lower()
+    return COUNTRY_MAP.get(n, n)
 
-def _determine_result(event: dict) -> str | None:
+
+def _get_session():
+    s = requests.Session()
+    proxy = os.getenv("HTTPS_PROXY") or os.getenv("HTTP_PROXY")
+    if proxy:
+        s.proxies = {"http": proxy, "https": proxy}
+    return s
+
+
+def _parse_kickoff(kickoff_str: str) -> Optional[int]:
+    """Parse '26.09 21:45' → unix ts (year 2026, MSK)."""
+    if not kickoff_str:
+        return None
     try:
-        home_score = int(event.get("intHomeScore", 0))
-        away_score = int(event.get("intAwayScore", 0))
-        if home_score > away_score:
-            return "home"
-        elif home_score < away_score:
-            return "away"
-        else:
-            return "draw"
-    except (ValueError, TypeError):
+        # "26.09 21:45"
+        day_month, hm = kickoff_str.strip().split()
+        dd, mm = day_month.split(".")
+        hh, mi = hm.split(":")
+        dt = datetime(2026, int(mm), int(dd), int(hh), int(mi), tzinfo=MSK)
+        return int(dt.timestamp())
+    except Exception:
         return None
 
-def _find_match(events: list[dict], home: str, away: str):
-    norm_home = _normalize(home)
-    norm_away = _normalize(away)
-    
+
+def _determine_result(event: dict) -> Optional[str]:
+    try:
+        sh = event.get("intHomeScore")
+        sa = event.get("intAwayScore")
+        if sh is None or sa is None:
+            return None
+        sh, sa = int(sh), int(sa)
+    except (TypeError, ValueError):
+        return None
+    if sh > sa:
+        return "home"
+    if sh < sa:
+        return "away"
+    return "draw"
+
+
+def _find_match(events: list, home_ru: str, away_ru: str) -> Optional[dict]:
+    h = _normalize(home_ru)
+    a = _normalize(away_ru)
     for e in events:
-        if _normalize(e.get("strHomeTeam", "")) == norm_home and \
-           _normalize(e.get("strAwayTeam", "")) == norm_away:
+        eh = _normalize(e.get("strHomeTeam", ""))
+        ea = _normalize(e.get("strAwayTeam", ""))
+        if (h == eh or h in eh or eh in h) and (a == ea or a in ea or ea in a):
             return e
     return None
 
-def resolve_all():
-    results_dir = "data/backtest/results"
-    os.makedirs(results_dir, exist_ok=True)
-    signals_dir = "data/backtest/signals"
-    
-    stats = {"checked": 0, "resolved": 0, "won": 0, "lost": 0, "pending": 0, "skipped": 0}
-    
-    cache = {}
-    session = requests.Session()
-    # Assuming proxy is in env
-    
-    for f in os.listdir(signals_dir):
-        if not f.endswith(".json"): continue
-        stats["checked"] += 1
-        
-        path = os.path.join(signals_dir, f)
-        with open(path, "r") as f_in:
-            signal = json.load(f_in)
-            
-        kickoff_str = signal.get("kickoff")
+
+def _fetch_events_for_date(session, date_str: str) -> list:
+    try:
+        r = session.get(f"{THESPORTSDB}/eventsday.php?d={date_str}&s=Soccer", timeout=20)
+        if r.status_code != 200:
+            return []
+        return (r.json() or {}).get("events") or []
+    except Exception as e:
+        print(f"[resolver] fetch {date_str}: {e}")
+        return []
+
+
+def resolve_all() -> dict:
+    """Read all signals, resolve via TheSportsDB, save results."""
+    now = time.time()
+    stats = {"checked": 0, "resolved": 0, "won": 0, "lost": 0,
+             "pending": 0, "skipped": 0}
+
+    # Collect all signals (flatten files)
+    signals = []
+    for sf in sorted(SIGNALS_DIR.glob("*.json")):
         try:
-            # 26.09 17:00 -> 2026-09-26 17:00
-            dt = datetime.strptime(f"2026.{kickoff_str}", "%Y.%d.%m %H:%M")
-        except:
+            d = json.loads(sf.read_text(encoding="utf-8"))
+            for s in d.get("signals", []):
+                s["_src"] = sf.name
+                signals.append(s)
+        except Exception as e:
+            print(f"[resolver] read {sf.name}: {e}")
+
+    session = _get_session()
+    cache = {}
+
+    for sig in signals:
+        stats["checked"] += 1
+
+        kick_ts = _parse_kickoff(sig.get("kickoff", ""))
+        if kick_ts is None:
             stats["skipped"] += 1
             continue
-            
-        if (datetime.now() - dt).total_seconds() < 3 * 3600:
+
+        # Future or match in progress → pending
+        if kick_ts > now - 3 * 3600:
             stats["pending"] += 1
             continue
-            
+
+        dt = datetime.fromtimestamp(kick_ts, tz=MSK)
         date_str = dt.strftime("%Y-%m-%d")
         if date_str not in cache:
-            try:
-                resp = session.get(f"https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d={date_str}&s=Soccer", timeout=10)
-                cache[date_str] = resp.json().get("events", []) or []
-            except:
-                cache[date_str] = []
-        
+            cache[date_str] = _fetch_events_for_date(session, date_str)
+            time.sleep(0.4)
+
         events = cache[date_str]
-        match = _find_match(events, signal["event"].split(" - ")[0], signal["event"].split(" - ")[1])
-        
-        if match:
-            res = _determine_result(match)
-            if res:
-                stats["resolved"] += 1
-                if signal["outcome"] == res:
-                    stats["won"] += 1
-                else:
-                    stats["lost"] += 1
-                
-                # Save result
-                out_path = os.path.join(results_dir, f"{f}_{res}.json")
-                with open(out_path, "w") as f_out:
-                    json.dump({"signal": signal, "match": match, "result": res}, f_out)
-            else:
-                stats["skipped"] += 1
-        else:
+        # event format: "Словакия vs Молдова"
+        ev_str = sig.get("event", "")
+        if " vs " not in ev_str:
             stats["skipped"] += 1
-            
+            continue
+        home_ru, away_ru = ev_str.split(" vs ", 1)
+
+        match = _find_match(events, home_ru.strip(), away_ru.strip())
+        if not match:
+            stats["skipped"] += 1
+            continue
+
+        result = _determine_result(match)
+        if result is None:
+            stats["pending"] += 1
+            continue
+
+        outcome = (sig.get("outcome") or "").lower()
+        won = (outcome == result)
+        stats["resolved"] += 1
+        stats["won" if won else "lost"] += 1
+
+        # Save result
+        rid = f"{sig['_src'].replace('.json','')}__{home_ru.strip()}__{away_ru.strip()}__{outcome}"
+        rid = rid.replace("/", "_").replace(" ", "_")
+        out = {
+            **sig,
+            "_result": result,
+            "_score": f"{match.get('intHomeScore')}-{match.get('intAwayScore')}",
+            "_won": won,
+            "_resolved_at": datetime.now(MSK).isoformat(),
+        }
+        (RESULTS_DIR / f"{rid}.json").write_text(
+            json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
     return stats
+
+
+if __name__ == "__main__":
+    print(json.dumps(resolve_all(), ensure_ascii=False, indent=2))
