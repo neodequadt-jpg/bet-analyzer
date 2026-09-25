@@ -1267,7 +1267,11 @@ def _format_sports_context(events, hours=72) -> str:
         return ""
     from datetime import datetime, timezone, timedelta
     msk = timezone(timedelta(hours=3))
-    top_kw = ("Премьер-Лига", "Примера", "Серия А", "Бундеслига", "Лига 1", "Лига Чемпионов")
+    top_kw = (
+        "Премьер-Лига", "Примера", "Серия А", "Бундеслига", "Лига 1", "Лига Чемпионов",
+        "Premier League", "La Liga", "Primera", "Serie A", "Bundesliga",
+        "Ligue 1", "Champions League", "Eredivisie", "Primeira Liga",
+    )
     top_ev = [e for e in events if any(k in (e.league or "") for k in top_kw)]
     other_ev = [e for e in events if e not in top_ev]
     lines = [f"АКТУАЛЬНЫЕ СПОРТИВНЫЕ ДАННЫЕ (окно {hours}ч):", ""]
