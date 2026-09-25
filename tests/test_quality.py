@@ -19,8 +19,8 @@ class TestQuality(unittest.TestCase):
         self.assertFalse(ok)
 
     def test_reject_high_ev(self):
-        from scoring.quality import is_high_quality_value
-        ok, _ = is_high_quality_value(FakeVB(0.25, 0.015))
+        from scoring.quality import is_high_quality_value, MAX_EV
+        ok, _ = is_high_quality_value(FakeVB(MAX_EV + 0.05, 0.015))
         self.assertFalse(ok)
 
     def test_reject_low_kelly(self):
