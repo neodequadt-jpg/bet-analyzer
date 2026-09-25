@@ -48,3 +48,18 @@ class TestResolverHelpers(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestResolvedStats(unittest.TestCase):
+    def test_shape(self):
+        from scoring.tracker import resolved_stats
+        s = resolved_stats()
+        for k in ("total", "pending", "resolved", "won", "lost",
+                  "winrate", "roi", "profit", "staked"):
+            self.assertIn(k, s)
+
+    def test_empty_zero_roi(self):
+        from scoring.tracker import resolved_stats
+        s = resolved_stats()
+        if s["resolved"] == 0:
+            self.assertEqual(s["roi"], 0)

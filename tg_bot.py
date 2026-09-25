@@ -1528,28 +1528,48 @@ def cmd_signals() -> str:
 
 
 def cmd_backtest() -> str:
-    """Forward-test statistics from logged /signals."""
+    """Forward-test stats + ROI from resolved results."""
     try:
-        from scoring.tracker import stats_summary
-    except ImportError:
-        return "\u26a0\ufe0f tracker not available"
+        from scoring.tracker import stats_summary, resolved_stats
+        from scoring.resolver import resolve_all
+    except ImportError as e:
+        return f"\u26a0\ufe0f imports failed: {e}"
+
+    # Auto-resolve before showing
+    try:
+        resolve_all()
+    except Exception as _e:
+        print(f"[backtest] resolve failed: {_e}", file=sys.stderr)
 
     stats = stats_summary()
     total = stats.get("total", 0)
     if total == 0:
         return "\U0001F4CA <b>Forward-Test</b>\n\n\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0437\u0430\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0445 \u0441\u0438\u0433\u043d\u0430\u043b\u043e\u0432. \u0417\u0430\u043f\u0443\u0441\u0442\u0438 /signals."
 
-    lines = [f"\U0001F4CA <b>Forward-Test</b> \u2014 \u043d\u0430\u043a\u043e\u043f\u043b\u0435\u043d\u043e {total} \u0441\u0438\u0433\u043d\u0430\u043b\u043e\u0432", ""]
+    try:
+        rs = resolved_stats()
+    except Exception as _e:
+        rs = {"resolved": 0, "pending": 0, "won": 0, "lost": 0,
+              "winrate": 0, "roi": 0, "profit": 0, "staked": 0}
+
+    lines = [f"\U0001F4CA <b>Forward-Test</b> \u2014 {total} \u0441\u0438\u0433\u043d\u0430\u043b\u043e\u0432", ""]
     lines.append(f"\u2022 \u0421\u0440\u0435\u0434\u043d\u0438\u0439 EV: <b>+{stats['avg_ev']*100:.1f}%</b>")
-    lines.append("\u2022 \u041f\u043e \u0411\u041a:")
-    for bk, cnt in (stats.get("by_bookmaker") or {}).items():
-        lines.append(f"   \u2013 {bk}: {cnt}")
-    lines.append("\u2022 \u041f\u043e EV-band:")
-    for band, cnt in (stats.get("by_ev_band") or {}).items():
-        lines.append(f"   \u2013 {band}: {cnt}")
     lines.append("")
-    lines.append("\u23f3 \u0420\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u044b \u043c\u0430\u0442\u0447\u0435\u0439 \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u043f\u043e\u0437\u0436\u0435 (\u0447\u0435\u0440\u0435\u0437 2-4 \u043d\u0435\u0434\u0435\u043b\u0438).")
+    lines.append("\U0001F3AF <b>\u0420\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u044b:</b>")
+    lines.append(f"\u2022 \u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u043e: {rs['resolved']}")
+    lines.append(f"\u2022 \u0412 \u043e\u0436\u0438\u0434\u0430\u043d\u0438\u0438: {rs['pending']}")
+
+    if rs["resolved"] > 0:
+        lines.append(f"\u2022 \u0412\u044b\u0438\u0433\u0440\u0430\u043b\u043e: {rs['won']} / \u041f\u0440\u043e\u0438\u0433\u0440\u0430\u043b\u043e: {rs['lost']}")
+        lines.append(f"\u2022 Winrate: <b>{rs['winrate']}%</b>")
+        lines.append(f"\u2022 ROI: <b>{rs['roi']:+.2f}%</b>")
+        lines.append(f"\u2022 \u041f\u0440\u043e\u0444\u0438\u0442: <b>{rs['profit']:+.0f}\u20bd</b> \u043d\u0430 {rs['staked']:.0f}\u20bd")
+    else:
+        lines.append("")
+        lines.append("\u23f3 \u041d\u0435\u0442 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043d\u043d\u044b\u0445 \u043c\u0430\u0442\u0447\u0435\u0439. \u041f\u043e\u0434\u043e\u0436\u0434\u0438\u0442\u0435 2-4 \u043d\u0435\u0434\u0435\u043b\u0438.")
+
     return "\n".join(lines)
+
 
 
 def dispatch(command: str) -> str:

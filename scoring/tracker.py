@@ -64,3 +64,93 @@ def stats_summary() -> dict:
         "by_bookmaker": by_bk,
         "by_ev_band": by_ev,
     }
+
+
+def resolved_stats() -> dict:
+    rdir = Path("data/backtest/results")
+    signals = load_all_signals()
+    total = len(signals)
+    resolved_list = []
+    if rdir.exists():
+        for f in rdir.glob("*.json"):
+            try:
+                resolved_list.append(json.loads(f.read_text()))
+            except Exception:
+                continue
+    won = sum(1 for r in resolved_list if r.get("_won"))
+    lost = len(resolved_list) - won
+    pending = total - len(resolved_list)
+    bank = 10000
+    kelly_frac = 0.5
+    profit = 0.0
+    staked = 0.0
+    for r in resolved_list:
+        odds = r.get("odds") or 0
+        kelly = r.get("kelly") or 0
+        stake = bank * kelly * kelly_frac
+        staked += stake
+        if r.get("_won"):
+            profit += stake * (odds - 1)
+        else:
+            profit -= stake
+    roi = (profit / staked * 100) if staked > 0 else 0.0
+    winrate = (won / len(resolved_list) * 100) if resolved_list else 0.0
+    return {
+        "total": total,
+        "pending": pending,
+        "resolved": len(resolved_list),
+        "won": won,
+        "lost": lost,
+        "winrate": round(winrate, 1),
+        "roi": round(roi, 2),
+        "profit": round(profit, 2),
+        "staked": round(staked, 2),
+    }
+
+
+def resolved_stats() -> dict:
+    """Read resolved results, compute ROI/winrate."""
+    rdir = Path("data/backtest/results")
+    signals = load_all_signals()
+    total = len(signals)
+
+    resolved_list = []
+    if rdir.exists():
+        for f in rdir.glob("*.json"):
+            try:
+                resolved_list.append(json.loads(f.read_text(encoding="utf-8")))
+            except Exception:
+                continue
+
+    won = sum(1 for r in resolved_list if r.get("_won"))
+    lost = len(resolved_list) - won
+    pending = total - len(resolved_list)
+
+    bank = 10000
+    kelly_frac = 0.5
+    profit = 0.0
+    staked = 0.0
+    for r in resolved_list:
+        odds = r.get("odds") or 0
+        kelly = r.get("kelly") or 0
+        stake = bank * kelly * kelly_frac
+        staked += stake
+        if r.get("_won"):
+            profit += stake * (odds - 1)
+        else:
+            profit -= stake
+
+    roi = (profit / staked * 100) if staked > 0 else 0.0
+    winrate = (won / len(resolved_list) * 100) if resolved_list else 0.0
+
+    return {
+        "total": total,
+        "pending": pending,
+        "resolved": len(resolved_list),
+        "won": won,
+        "lost": lost,
+        "winrate": round(winrate, 1),
+        "roi": round(roi, 2),
+        "profit": round(profit, 2),
+        "staked": round(staked, 2),
+    }
