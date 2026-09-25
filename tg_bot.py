@@ -263,6 +263,7 @@ def get_welcome_text(chat_id) -> str:
         "/start \u2014 welcome\n",
         "/help \u2014 help\n",
         "/value \u2014 value bets\n",
+        "/signals \u2014 top-5 value-bets with Kelly stakes\n",
         "/express \u2014 AI express\n",
         "/report \u2014 AI report\n",
         "/live &lt;sport&gt; &lt;hours&gt; \u2014 upcoming matches (tt/football/hockey/tennis/esports/basketball/volleyball)\n",
@@ -973,6 +974,77 @@ def cmd_express() -> str:
         fb = _today_express_fallback()
         if fb:
             return fb
+    # PRIORITY 1: value-bets для экспресса (ev > 3%, odds 1.5-15, разные матчи)
+    value_legs = []
+    seen_matches = set()
+    for r in results:
+        ev_meta = r['event']
+        ev_label = f"{ev_meta['home']} vs {ev_meta['away']}"
+        if ev_label in seen_matches:
+            continue
+        # Лучший vb для этого матча
+        best = None
+        for vb in r['value_bets']:
+            odds = vb.get('odds') or 0
+            ev = vb.get('ev') or 0
+            if not (1.4 <= odds <= 2.8):  # cap: 3-legs total 3-22
+                continue
+            if ev < 0.03:
+                continue
+            if best is None or ev > (best.get('ev') or 0):
+                best = vb
+        if best:
+            seen_matches.add(ev_label)
+            k_ts = int(ev_meta['kickoff']) if str(ev_meta['kickoff']).isdigit() else 0
+            from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+            _msk = _tz(_td(hours=3))
+            _kick = f"{_dt.fromtimestamp(k_ts, tz=_msk):%d.%m %H:%M}" if k_ts else "?"
+            value_legs.append({
+                'event': ev_label,
+                'outcome': best['outcome'],
+                'odds': best['odds'],
+                'bookmaker': best['bookmaker'],
+                'ev': best['ev'],
+                'kelly': best['kelly'],
+                'league': ev_meta.get('league', ''),
+                'kickoff_label': _kick,
+                'deal_score': best.get('deal_score', 0),
+            })
+        # cap total odds at 25 (3 legs of ~2.8)
+        current_total = 1.0
+        for lg in value_legs:
+            current_total *= lg.get('odds', 1)
+        if current_total > 25:
+            break
+        if len(value_legs) >= 4:
+            break
+
+    if len(value_legs) >= 2:
+        # Сортируем по EV
+        # Приоритет: high EV + low odds (sure value)
+        value_legs.sort(key=lambda x: (x['odds'], -x['ev']))
+        top3 = value_legs[:3]
+        total_odds = 1.0
+        for leg in top3:
+            total_odds *= leg['odds']
+        lines = [f"\U0001F3AF <b>ЭКСПРЕСС VALUE</b> ({len(top3)} исходов)", ""]
+        for i, leg in enumerate(top3, 1):
+            lines.append(f"{i}. <b>{leg['event']}</b> ({leg['kickoff_label']})")
+            lines.append(f"   — {leg['outcome']} @ <b>{leg['odds']}</b> ({leg['bookmaker']})")
+            lines.append(f"   EV <b>+{leg['ev']*100:.1f}%</b> | Kelly {leg['kelly']*100:.2f}%")
+            if leg['league']:
+                lines.append(f"   {leg['league'][:50]}")
+            lines.append("")
+        lines.append(f"\U0001F4CA <b>Итого:</b>")
+        lines.append(f"• Коэффициент: <b>{round(total_odds, 2)}</b>")
+        lines.append(f"• Вероятность: ~<b>{100/total_odds:.1f}%</b>")
+        lines.append(f"• При 100\u20bd → {int(100*total_odds)}\u20bd")
+        lines.append("")
+        lines.append("\u2705 Каждый исход с положительным EV (value-bet).")
+        lines.append("\u26a0\ufe0f 3-legs экспресс: риск средний. Ставка Kelly 1-2%.")
+        return "\n".join(lines)
+
+    # FALLBACK: consensus picks
     results_for_express = results[:3] if len(results) > 3 else results
 
     if len(results_for_express) < 2:
@@ -1368,6 +1440,86 @@ def ai_chat(chat_id, user_text: str) -> str:
     return content
 
 
+def cmd_signals() -> str:
+    """Top-5 value-bets of the day with Kelly stakes."""
+    results = build_pipeline()
+    from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+    msk = _tz(_td(hours=3))
+
+    # Collect all value-bets
+    all_vbs = []
+    for r in results:
+        ev_meta = r["event"]
+        ev_label = f"{ev_meta['home']} vs {ev_meta['away']}"
+        k_ts = int(ev_meta["kickoff"]) if str(ev_meta.get("kickoff", "")).isdigit() else 0
+        kick = _dt.fromtimestamp(k_ts, tz=msk).strftime("%d.%m %H:%M") if k_ts else "?"
+
+        for vb in r["value_bets"]:
+            odds = vb.get("odds") or 0
+            ev = vb.get("ev") or 0
+            kelly = vb.get("kelly") or 0
+            if odds <= 1.0 or ev <= 0:
+                continue
+            all_vbs.append({
+                "event": ev_label,
+                "outcome": vb["outcome"],
+                "odds": odds,
+                "bookmaker": vb["bookmaker"],
+                "ev": ev,
+                "kelly": kelly,
+                "league": ev_meta.get("league", ""),
+                "kickoff": kick,
+                "deal_score": vb.get("deal_score", 0),
+            })
+
+    if not all_vbs:
+        return "\U0001F4E1 <b>\u0421\u0438\u0433\u043d\u0430\u043b\u043e\u0432 \u043d\u0435\u0442</b>\n\n\u0412 pipeline \u043d\u0435\u0442 value-bets \u0441 EV > 0."
+
+    # Sort by EV desc
+    all_vbs.sort(key=lambda x: x["ev"], reverse=True)
+    # Dedup: одна ставка на матч (берём лучшую по EV)
+    seen_events = set()
+    deduped = []
+    for vb in all_vbs:
+        if vb["event"] in seen_events:
+            continue
+        seen_events.add(vb["event"])
+        deduped.append(vb)
+    top = deduped[:5]
+
+    # Bank — default 10000, can override via env SIGNALS_BANK
+    bank = int(os.environ.get("SIGNALS_BANK", "10000"))
+    kelly_fraction = 0.5  # half-Kelly для безопасности
+
+    total_stake = 0
+    total_ev_weighted = 0
+    lines = [f"\U0001F4E1 <b>\u0421\u0418\u0413\u041d\u0410\u041b\u042b \u0414\u041d\u042f</b> (\u0442\u043e\u043f-{len(top)} value-bets)", ""]
+    lines.append(f"\U0001F4B0 \u0411\u0430\u043d\u043a: {bank}\u20bd | Kelly \u00d7 {kelly_fraction}")
+    lines.append("")
+
+    for i, vb in enumerate(top, 1):
+        stake = round(bank * vb["kelly"] * kelly_fraction, 0)
+        total_stake += stake
+        total_ev_weighted += stake * vb["ev"]
+        lines.append(f"<b>{i}. {vb['event']}</b>")
+        lines.append(f"   \u2192 <b>{vb['outcome']}</b> @ {vb['bookmaker']} <b>{vb['odds']}</b>")
+        lines.append(f"   EV <b>+{vb['ev']*100:.1f}%</b> | Kelly {vb['kelly']*100:.2f}% | \u0441\u0442\u0430\u0432\u043a\u0430 <b>{int(stake)}\u20bd</b>")
+        lines.append(f"   {vb['kickoff']} | {vb['league'][:50]}")
+        lines.append("")
+
+    # Total stats
+    if total_stake > 0:
+        risk_pct = total_stake / bank * 100
+        expected_profit = total_ev_weighted
+        lines.append(f"\U0001F4CA <b>\u0418\u0442\u043e\u0433\u043e:</b>")
+        lines.append(f"\u2022 \u0421\u0443\u043c\u043c\u0430 \u0441\u0442\u0430\u0432\u043e\u043a: <b>{int(total_stake)}\u20bd</b> ({risk_pct:.1f}% \u0431\u0430\u043d\u043a\u0430)")
+        lines.append(f"\u2022 \u041c\u0430\u0442. \u043e\u0436\u0438\u0434\u0430\u043d\u0438\u0435: <b>+{int(expected_profit)}\u20bd</b> \u043d\u0430 \u0434\u0438\u0441\u0442\u0430\u043d\u0446\u0438\u0438")
+        lines.append("")
+        lines.append("\u26a0\ufe0f \u0421\u0442\u0430\u0432\u044c\u0442\u0435 \u0442\u043e\u043b\u044c\u043a\u043e \u0441\u0432\u043e\u0431\u043e\u0434\u043d\u044b\u0435 \u0441\u0440\u0435\u0434\u0441\u0442\u0432\u0430. \u0414\u0438\u0441\u043f\u0435\u0440\u0441\u0438\u044f \u0432\u044b\u0441\u043e\u043a\u0430\u044f \u2014 5 \u0441\u0442\u0430\u0432\u043e\u043a \u043c\u043e\u0433\u0443\u0442 \u0432\u0441\u0435 \u043f\u0440\u043e\u0438\u0433\u0440\u0430\u0442\u044c \u043f\u043e\u0434\u0440\u044f\u0434.")
+        lines.append("\u2705 \u0422\u043e\u043b\u044c\u043a\u043e value-bets (EV > 0 \u043f\u043e consensus \u0424\u043e\u043d\u0431\u0435\u0442 + Smarkets).")
+    return "\n".join(lines)
+
+
 def dispatch(command: str) -> str:
     if command in ("/start", "/help"):
         return WELCOME_TEXT
@@ -1375,6 +1527,8 @@ def dispatch(command: str) -> str:
         text, kb = cmd_value()
         send_message(_LAST_CHAT_ID, text, reply_markup=kb)
         return ""
+    if command == "/signals":
+        return cmd_signals()
     if command == "/express":
         return cmd_express()
     if command == "/report":
@@ -1495,6 +1649,10 @@ def _handle_callback(cb):
         text, kb = cmd_value()
         send_message(_LAST_CHAT_ID, text, reply_markup=kb)
         return ""
+    if command == "/signals":
+        reply = cmd_signals()
+        send_message(chat_id, reply, reply_markup=get_main_keyboard(chat_id))
+        return
     if command == "/live":
         _LAST_LIVE_ARGV = data.split()[1:]
     try:

@@ -487,5 +487,17 @@ class TestSportsRAG(unittest.TestCase):
         self.assertIn("Премьер-Лига", ctx)
 
 
+class TestSignals(unittest.TestCase):
+    def test_cmd_signals_returns_string(self):
+        import tg_bot
+        out = tg_bot.cmd_signals()
+        self.assertIsInstance(out, str)
+        self.assertGreater(len(out), 50)
+
+    def test_signals_no_duplicate_events(self):
+        import tg_bot, re
+        out = tg_bot.cmd_signals()
+        events = re.findall(r"<b>\d+\. ([^<]+)</b>", out)
+        self.assertEqual(len(events), len(set(events)), f"duplicate events: {events}")
 if __name__ == "__main__":
     unittest.main(verbosity=2)
