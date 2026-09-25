@@ -1527,6 +1527,31 @@ def cmd_signals() -> str:
     return "\n".join(lines)
 
 
+def cmd_backtest() -> str:
+    """Forward-test statistics from logged /signals."""
+    try:
+        from scoring.tracker import stats_summary
+    except ImportError:
+        return "\u26a0\ufe0f tracker not available"
+
+    stats = stats_summary()
+    total = stats.get("total", 0)
+    if total == 0:
+        return "\U0001F4CA <b>Forward-Test</b>\n\n\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0437\u0430\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0445 \u0441\u0438\u0433\u043d\u0430\u043b\u043e\u0432. \u0417\u0430\u043f\u0443\u0441\u0442\u0438 /signals."
+
+    lines = [f"\U0001F4CA <b>Forward-Test</b> \u2014 \u043d\u0430\u043a\u043e\u043f\u043b\u0435\u043d\u043e {total} \u0441\u0438\u0433\u043d\u0430\u043b\u043e\u0432", ""]
+    lines.append(f"\u2022 \u0421\u0440\u0435\u0434\u043d\u0438\u0439 EV: <b>+{stats['avg_ev']*100:.1f}%</b>")
+    lines.append("\u2022 \u041f\u043e \u0411\u041a:")
+    for bk, cnt in (stats.get("by_bookmaker") or {}).items():
+        lines.append(f"   \u2013 {bk}: {cnt}")
+    lines.append("\u2022 \u041f\u043e EV-band:")
+    for band, cnt in (stats.get("by_ev_band") or {}).items():
+        lines.append(f"   \u2013 {band}: {cnt}")
+    lines.append("")
+    lines.append("\u23f3 \u0420\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u044b \u043c\u0430\u0442\u0447\u0435\u0439 \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u043f\u043e\u0437\u0436\u0435 (\u0447\u0435\u0440\u0435\u0437 2-4 \u043d\u0435\u0434\u0435\u043b\u0438).")
+    return "\n".join(lines)
+
+
 def dispatch(command: str) -> str:
     if command in ("/start", "/help"):
         return WELCOME_TEXT
@@ -1536,6 +1561,8 @@ def dispatch(command: str) -> str:
         return ""
     if command == "/signals":
         return cmd_signals()
+    if command == "/backtest":
+        return cmd_backtest()
     if command == "/express":
         return cmd_express()
     if command == "/report":
@@ -1658,6 +1685,10 @@ def _handle_callback(cb):
         return ""
     if command == "/signals":
         reply = cmd_signals()
+        send_message(chat_id, reply, reply_markup=get_main_keyboard(chat_id))
+        return
+    if command == "/backtest":
+        reply = cmd_backtest()
         send_message(chat_id, reply, reply_markup=get_main_keyboard(chat_id))
         return
     if command == "/live":
