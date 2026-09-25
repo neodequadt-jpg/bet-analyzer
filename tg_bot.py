@@ -28,6 +28,8 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from bookmakers.fonbet_api import fetch_rpl_odds
+from bookmakers.fonbet_api import fetch_nations_odds
+from bookmakers.smarkets_adapter import fetch_smarkets_events
 from bookmakers.fonbet_extended import fetch_events_by_sport, resolve_sport
 from bookmakers.manual_source import list_manual_events, parse_manual
 from bookmakers.normalizer import merge
@@ -622,10 +624,26 @@ def build_pipeline(skip_stale_hours: float = 1.0,
                      max_ahead_hours: float = 720.0):
     """Build pipeline. Skip matches whose kickoff < now - skip_stale_hours or > now + max_ahead_hours."""
     fonbet = fetch_rpl_odds(force=True)
+    # Лига наций УЕФА — для consensus со Smarkets
+    try:
+        nations = fetch_nations_odds()
+        print(f"[build_pipeline] fonbet nations: {len(nations)}", file=sys.stderr)
+        fonbet = list(fonbet) + nations
+    except Exception as _e:
+        print(f"[build_pipeline] nations failed: {_e}", file=sys.stderr)
     manual = []
     for eid in list_manual_events():
         manual.extend(parse_manual(eid))
-    groups = merge(fonbet, manual)
+    smarkets = []
+    try:
+        import traceback
+        smarkets = fetch_smarkets_events(hours=168, max_events=20)
+        print(f"[build_pipeline] smarkets events: {len(smarkets)}", file=sys.stderr)
+    except Exception as _e:
+        print(f"[build_pipeline] smarkets FAILED: {type(_e).__name__}: {_e}", file=sys.stderr)
+        traceback.print_exc()
+        smarkets = []
+    groups = merge(fonbet, manual, smarkets)
 
     now = time.time()
     cutoff_ts = now - (skip_stale_hours * 3600)

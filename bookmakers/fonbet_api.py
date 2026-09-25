@@ -117,3 +117,114 @@ if __name__ == "__main__":
     for e in events[:5]:
         print(f"  {e.home:22} vs {e.away:22} | "
               f"1={e.odds_home} X={e.odds_draw} 2={e.odds_away}")
+
+
+# ---------------------------------------------------------------------------
+# UEFA Champions + Conference League (добавлено 25.09.2026)
+# Для consensus с Smarkets (биржа)
+# ---------------------------------------------------------------------------
+SPORT_ID_CHAMPIONS = 113724
+SPORT_ID_CONFERENCE = 113730
+UEFA_SPORT_IDS = (SPORT_ID_CHAMPIONS, SPORT_ID_CONFERENCE)
+UEFA_LEAGUES = {
+    SPORT_ID_CHAMPIONS: "UEFA Champions League",
+    SPORT_ID_CONFERENCE: "UEFA Conference League",
+}
+
+
+def parse_uefa_events(data: dict) -> list[OddsEvent]:
+    """Парсит матчи UEFA Champions + Conference League."""
+    cf_map = _cf_map(data)
+    out: list[OddsEvent] = []
+
+    for sport_id in UEFA_SPORT_IDS:
+        events = _top_events_by_sport(data, sport_id)
+        league_name = UEFA_LEAGUES.get(sport_id, "UEFA")
+
+        for ev in events:
+            cf = cf_map.get(ev["id"])
+            if not cf:
+                continue
+            factors = {f["f"]: f["v"] for f in cf.get("factors", [])}
+            odds_home = factors.get(F_HOME)
+            odds_draw = factors.get(F_DRAW)
+            odds_away = factors.get(F_AWAY)
+            if not (odds_home and odds_draw and odds_away):
+                continue
+
+            out.append(OddsEvent(
+                event_id=f"fonbet_{ev['id']}",
+                sport="football",
+                league=league_name,
+                home=str(ev.get("team1", "")).strip(),
+                away=str(ev.get("team2", "")).strip(),
+                kickoff_iso=str(ev.get("startTime", "")),
+                bookmaker=BOOKMAKER_NAME,
+                odds_home=float(odds_home),
+                odds_draw=float(odds_draw),
+                odds_away=float(odds_away),
+                odds_total_over=factors.get(F_TOTAL_OVER_25),
+                odds_total_under=factors.get(F_TOTAL_UNDER_25),
+                total_line=2.5,
+            ))
+    return out
+
+
+def fetch_uefa_odds(force: bool = False) -> list[OddsEvent]:
+    """High-level: UEFA Champions + Conference League."""
+    data = fetch_list_base(force=force)
+    return parse_uefa_events(data)
+
+
+# ---------------------------------------------------------------------------
+# Лига наций УЕФА (для consensus с Smarkets)
+# ---------------------------------------------------------------------------
+SPORT_IDS_NATIONS = (46065, 46066, 46067, 46068)
+NATIONS_DIVISIONS = {
+    46065: "UEFA Nations League A",
+    46066: "UEFA Nations League B",
+    46067: "UEFA Nations League C",
+    46068: "UEFA Nations League D",
+}
+
+
+def parse_nations_events(data: dict) -> list[OddsEvent]:
+    """Парсит матчи Лиги наций УЕФА (дивизионы A/B/C/D)."""
+    cf_map = _cf_map(data)
+    out: list[OddsEvent] = []
+
+    for sport_id in SPORT_IDS_NATIONS:
+        events = _top_events_by_sport(data, sport_id)
+        league_name = NATIONS_DIVISIONS.get(sport_id, "UEFA Nations League")
+        for ev in events:
+            cf = cf_map.get(ev["id"])
+            if not cf:
+                continue
+            factors = {f["f"]: f["v"] for f in cf.get("factors", [])}
+            oh = factors.get(F_HOME)
+            od = factors.get(F_DRAW)
+            oa = factors.get(F_AWAY)
+            if not (oh and od and oa):
+                continue
+            out.append(OddsEvent(
+                event_id=f"fonbet_{ev['id']}",
+                sport="football",
+                league=league_name,
+                home=str(ev.get("team1", "")).strip(),
+                away=str(ev.get("team2", "")).strip(),
+                kickoff_iso=str(ev.get("startTime", "")),
+                bookmaker=BOOKMAKER_NAME,
+                odds_home=float(oh),
+                odds_draw=float(od),
+                odds_away=float(oa),
+                odds_total_over=factors.get(F_TOTAL_OVER_25),
+                odds_total_under=factors.get(F_TOTAL_UNDER_25),
+                total_line=2.5,
+            ))
+    return out
+
+
+def fetch_nations_odds(force: bool = False) -> list[OddsEvent]:
+    """High-level: Лига наций УЕФА."""
+    data = fetch_list_base(force=force)
+    return parse_nations_events(data)
