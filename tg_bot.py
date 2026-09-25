@@ -1273,7 +1273,7 @@ def _format_sports_context(events, hours=72) -> str:
     lines = [f"АКТУАЛЬНЫЕ СПОРТИВНЫЕ ДАННЫЕ (окно {hours}ч):", ""]
     if top_ev:
         lines.append("ТОП-ЛИГИ:")
-        for e in top_ev[:15]:
+        for e in top_ev[:25]:
             dt = datetime.fromtimestamp(e.start_ts, tz=msk)
             lines.append(f"  {dt:%d.%m %H:%M} {e.home} vs {e.away} ({e.league})")
         lines.append("")
@@ -1307,8 +1307,8 @@ def ai_chat(chat_id, user_text: str) -> str:
     if _detect_sports_rag(user_text):
         try:
             from sports_data.aggregator import fetch_all_events
-            sd_events = fetch_all_events(hours=168)
-            ctx = _format_sports_context(sd_events, 168)
+            sd_events = fetch_all_events(hours=720)
+            ctx = _format_sports_context(sd_events, 720)
             if ctx:
                 system_text = (system_text + "\n\n" + ctx).strip()
         except Exception as _e:
