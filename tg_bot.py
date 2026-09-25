@@ -1371,8 +1371,8 @@ def dispatch(command: str) -> str:
         return WELCOME_TEXT
     if command == "/value":
         text, kb = cmd_value()
-        send_message(chat_id, text, reply_markup=kb)
-        return
+        send_message(_LAST_CHAT_ID, text, reply_markup=kb)
+        return ""
     if command == "/express":
         return cmd_express()
     if command == "/report":
@@ -1491,8 +1491,8 @@ def _handle_callback(cb):
     command = data.split()[0].split("@")[0].lower()
     if command == "/value":
         text, kb = cmd_value()
-        send_message(chat_id, text, reply_markup=kb)
-        return
+        send_message(_LAST_CHAT_ID, text, reply_markup=kb)
+        return ""
     if command == "/live":
         _LAST_LIVE_ARGV = data.split()[1:]
     try:
