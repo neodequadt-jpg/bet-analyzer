@@ -632,7 +632,7 @@ def build_pipeline(skip_stale_hours: float = 1.0,
         print(f"[build_pipeline] fonbet nations: {len(nations)}", file=sys.stderr)
         fonbet = list(fonbet) + nations
     except Exception as _e:
-        print(f"[build_pipeline] nations failed: {_e}", file=sys.stderr)
+        print(f"[build_pipeline] nations failed: {_sanitize_error(_e)}", file=sys.stderr)
     manual = []
     for eid in list_manual_events():
         manual.extend(parse_manual(eid))
@@ -642,7 +642,7 @@ def build_pipeline(skip_stale_hours: float = 1.0,
         smarkets = fetch_smarkets_events(hours=168, max_events=20)
         print(f"[build_pipeline] smarkets events: {len(smarkets)}", file=sys.stderr)
     except Exception as _e:
-        print(f"[build_pipeline] smarkets FAILED: {type(_e).__name__}: {_e}", file=sys.stderr)
+        print(f"[build_pipeline] smarkets FAILED: {type(_e).__name__}: {_sanitize_error(_e)}", file=sys.stderr)
         traceback.print_exc()
         smarkets = []
     groups = merge(fonbet, manual, smarkets)
@@ -870,7 +870,7 @@ def _today_express_fallback():
     try:
         events.extend(fetch_real_today(hours=24, max_per_sport=15))
     except Exception as e:
-        print(f"[express] fonbet fallback failed: {e}", file=sys.stderr)
+        print(f"[express] fonbet fallback failed: {_sanitize_error(e)}", file=sys.stderr)
 
     try:
         from sports_data.aggregator import fetch_all_events
@@ -888,7 +888,7 @@ def _today_express_fallback():
                 "source": ev.source,
             })
     except Exception as e:
-        print(f"[express] sports_data failed: {e}", file=sys.stderr)
+        print(f"[express] sports_data failed: {_sanitize_error(e)}", file=sys.stderr)
 
     if len(events) < 2:
         return None
@@ -1408,7 +1408,7 @@ def ai_chat(chat_id, user_text: str) -> str:
             if ctx:
                 system_text = (system_text + "\n\n" + ctx).strip()
         except Exception as _e:
-            print(f"[tg_bot] sports RAG failed: {_e}", file=sys.stderr)
+            print(f"[tg_bot] sports RAG failed: {_sanitize_error(_e)}", file=sys.stderr)
 
     if system_text:
         messages.append({"role": "system", "content": system_text})
@@ -1486,6 +1486,13 @@ def cmd_signals() -> str:
         seen_events.add(vb["event"])
         deduped.append(vb)
     top = deduped[:5]
+
+    # Forward-test: log every /signals call
+    try:
+        from scoring.tracker import log_signals
+        log_signals(top)
+    except Exception as _e:
+        print(f"[signals] tracker failed: {_sanitize_error(_e)}", file=sys.stderr)
 
     # Bank — default 10000, can override via env SIGNALS_BANK
     bank = int(os.environ.get("SIGNALS_BANK", "10000"))

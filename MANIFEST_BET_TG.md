@@ -120,3 +120,27 @@ procedure:
 response_must_end_with:
   - ENGINEERING STATE RESTORED
   - PRIORITY_N EXECUTED
+
+## SECURITY RULES (обязательно для DSH и человека)
+
+tokens:
+  - Все токены живут ТОЛЬКО в ~/.bet_env (chmod 600)
+  - Никогда не печатать токены в stdout/stderr/логи
+  - При выводе любого URL с ключом — использовать `| redact`
+  - Если токен засветился: СРАЗУ revoke
+
+redact:
+  - Функция `redact()` в ~/.bashrc — маскирует токены в любом выводе
+  - Использование: `echo "$TOKEN" | redact`
+  - Паттерны: bot<N>:<TOKEN>, sk-*, gsk_*, AIzaSy*, hex-32+
+
+revoke_urls:
+  - Telegram bot: @BotFather → /mybots → Revoke current token
+  - football-data.org: /client/profile → Regenerate token
+  - OmniRoute: /dashboard → API Keys → Regenerate
+  - Smarkets: N/A (публичный API)
+
+sanitize_in_code:
+  - tg_bot.py:_sanitize_error() — маскирует bot tokens в error-print
+  - Используется во всех except-блоках, логирующих URL
+
