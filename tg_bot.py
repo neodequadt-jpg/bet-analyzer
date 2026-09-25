@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """tg_bot.py — Telegram long-polling bot for BET-ANALYZER.
 
-Pipeline: Fonbet + manual -> consensus -> EV -> value bets -> AI express/report.
+Pipeline: Fonbet + Smarkets + manual -> consensus -> EV -> value bets -> AI express/report.
 Uses ONLY requests + stdlib (no aiogram / telebot / asyncio / threading).
 
 - BOT_TOKEN from env (empty -> message + exit(1) in main()).
@@ -98,7 +98,7 @@ DEFAULT_LANG = "ru"
 _I18N = {
     "ru": {
         "welcome_title": "<b>\U0001F9E0 BET-ANALYZER bot</b>\n",
-        "welcome_sub": "Pipeline: Fonbet + manual \u2192 consensus \u2192 EV \u2192 value bets.\n\n",
+        "welcome_sub": "Pipeline: Fonbet + Smarkets + manual \u2192 consensus \u2192 EV \u2192 value bets.\n\n",
         "welcome_cmds": "<b>Команды:</b>\n",
         "welcome_footer": "\n\u0418\u043b\u0438 \u043f\u0440\u043e\u0441\u0442\u043e "
                           "\u043d\u0430\u043f\u0438\u0448\u0438 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 "
@@ -126,7 +126,7 @@ _I18N = {
     },
     "en": {
         "welcome_title": "<b>\U0001F9E0 BET-ANALYZER bot</b>\n",
-        "welcome_sub": "Pipeline: Fonbet + manual \u2192 consensus \u2192 EV \u2192 value bets.\n\n",
+        "welcome_sub": "Pipeline: Fonbet + Smarkets + manual \u2192 consensus \u2192 EV \u2192 value bets.\n\n",
         "welcome_cmds": "<b>Commands:</b>\n",
         "welcome_footer": "\nOr just send a message \u2014 the AI assistant will reply.\n",
         "kb_value": "\U0001F4CA Value",
@@ -202,7 +202,7 @@ _LAST_CHAT_ID = None
 
 WELCOME_TEXT = (
     "<b>\U0001F9E0 BET-ANALYZER bot</b>\n"
-    "Pipeline: Fonbet + manual \u2192 consensus \u2192 EV \u2192 value bets.\n\n"
+    "Pipeline: Fonbet + Smarkets + manual \u2192 consensus \u2192 EV \u2192 value bets.\n\n"
     "<b>Commands:</b>\n"
     "/start \u2014 welcome\n"
     "/help \u2014 this help\n"
@@ -1820,6 +1820,18 @@ def main():
         sys.exit(1)
 
     print("[tg_bot] starting, polling api.telegram.org ...")
+    try:
+        import threading
+        def _warm():
+            try:
+                from bookmakers.smarkets_adapter import fetch_smarkets_events
+                n = len(fetch_smarkets_events(hours=168, max_events=20))
+                print(f"[tg_bot] smarkets warmed: {n}", file=sys.stderr)
+            except Exception as _e:
+                print(f"[tg_bot] smarkets warm failed: {_e}", file=sys.stderr)
+        threading.Thread(target=_warm, daemon=True).start()
+    except Exception as _e:
+        print(f"[tg_bot] warm thread failed: {_e}", file=sys.stderr)
     if TG_ADMIN_IDS:
         print(f"[tg_bot] chat whitelist: {sorted(TG_ADMIN_IDS)}")
 
