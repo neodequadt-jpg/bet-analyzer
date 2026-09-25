@@ -1,0 +1,46 @@
+{
+  "event_id": "auto_Ростов_Акрон_20260925",
+  "sport": "football",
+  "league": "RPL",
+  "home": "Ростов",
+  "away": "Акрон",
+  "kickoff_iso": "1791563400",
+  "bookmakers": [
+    {
+      "name": "Фонбет",
+      "home": 1.85,
+      "draw": 3.7,
+      "away": 4.25,
+      "over": 2.0,
+      "under": 1.8,
+      "line": 2.5
+    },
+    {
+      "name": "Марафон",
+      "home": 1.9,
+      "draw": 3.64,
+      "away": 4.18,
+      "over": 2.0,
+      "under": 1.8,
+      "line": 2.5
+    },
+    {
+      "name": "Винлайн",
+      "home": 1.87,
+      "draw": 4.0,
+      "away": 4.14,
+      "over": 2.0,
+      "under": 1.8,
+      "line": 2.5
+    },
+    {
+      "name": "PARI",
+      "home": 1.82,
+      "draw": 4.05,
+      "away": 4.29,
+      "over": 2.0,
+      "under": 1.8,
+      "line": 2.5
+    }
+  ]
+}
