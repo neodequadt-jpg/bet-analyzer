@@ -50,7 +50,44 @@ def _extract_league(slug):
     return "Smarkets"
 
 
+import json
+from pathlib import Path as _Path
+
+CACHE_PATH = _Path("data/cache/smarkets/events.json")
+CACHE_TTL = 300  # 5 minutes
+
+
+def _cache_load():
+    try:
+        if CACHE_PATH.exists():
+            data = json.loads(CACHE_PATH.read_text(encoding="utf-8"))
+            if time.time() - data.get("ts", 0) < CACHE_TTL:
+                return data.get("events", [])
+    except Exception:
+        pass
+    return None
+
+
+def _cache_save(events):
+    try:
+        CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        CACHE_PATH.write_text(
+            json.dumps({"ts": time.time(), "events": events}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
+
+
 def fetch_events(hours=72, max_events=30):
+    # Cache hit?
+    cached = _cache_load()
+    if cached is not None:
+        now = time.time()
+        lo = now - 3600
+        hi = now + hours * 3600
+        return [e for e in cached if lo <= e["start_ts"] <= hi][:max_events]
+
     session = get_http_session()
     now = time.time()
     lo = now - 3600
@@ -133,6 +170,7 @@ def fetch_events(hours=72, max_events=30):
             "source": "smarkets",
         })
     out.sort(key=lambda x: x["start_ts"])
+    _cache_save(out)
     return out
 
 

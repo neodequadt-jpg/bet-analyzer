@@ -35,6 +35,7 @@ from bookmakers.manual_source import list_manual_events, parse_manual
 from bookmakers.normalizer import merge
 from market.consensus import evaluate_event
 from scoring.ev import evaluate_value
+from scoring.quality import filter_value_bets
 from ai.express_builder import ExpressBuilder
 from ai.analyst import ValueBetAnalyst
 from pathlib import Path
@@ -668,10 +669,11 @@ def build_pipeline(skip_stale_hours: float = 1.0,
         if market.get("status") != "ok":
             continue
         vbs = evaluate_value(market)
+        vbs_quality = filter_value_bets(vbs)
         result.append({
             "event": market["event"],
             "consensus": market["consensus"],
-            "value_bets": [vb.__dict__ for vb in vbs],
+            "value_bets": [vb.__dict__ for vb in vbs_quality],
         })
     if skipped_stale or skipped_future or skipped_thin:
         print(f"[build_pipeline] skipped: {skipped_stale} stale, "
