@@ -63,3 +63,28 @@
 | run-20260926-115425 | PASS (live task G-AI-0001) | groq/openai/gpt-oss-120b | verif 3 (all ok) |
 | run-20260926-122908 | PASS (dogfooding) | groq/openai/gpt-oss-120b | verif 3 (all ok) |
 | run-20260926-123929 | FAIL (exit 6, EVR summary) | groq/openai/gpt-oss-120b | verif 2 (1 ok, 1 fail) |
+
+---
+
+## Update 3: Bug A fix + Gemini-only + Phase 3.5 (2026-09-26)
+
+### Bug A — set_model regex
+- Симптом: DSH получал 4× одинаковый "gemini cooling down" независимо от settings
+- Причина: regex искал 1 пробел, settings.yaml имел 2 (YAML indent)
+- Fix: `\s+` + `re.subn` с диагностикой
+- Evidence: `[set_model] -> groq/...` / `-> gemini/...` в run-20260926-164637
+
+### Bug C — Groq free TPM=8000
+- Groq free несовместим с DSH payload > 8K токенов (spec + tg_bot.py + reasoning)
+- Fix: rotation переключена на Gemini-only
+- Trade-off: free, но backoff до 300s при cooldown
+
+### Phase 3.5 — crash-safe partial EVR
+- После DSH commit — partial run.json ДО Phase 4 tests
+- Защита от interrupt в Phase 4
+- Evidence: `[dsh-auto] partial EVR written (post=...)`
+
+### First PASS through v4.2 (Gemini-only)
+- run-20260926-164637: `7b6e96d` Add cmd_live_match
+- 5 verifications (py_compile, run_tests, SINGLE_OK, VALUE_INTACT, OK)
+- Tests 119 → 119 без регрессий
