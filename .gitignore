@@ -18,11 +18,23 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
 
-# Runtime data
+# Runtime data (кэш, транзиент)
 data/runs/
 data/cache/
+data/backtest/results/
 
-# Secrets
-.env.bot
-.env.bot.local
+# Secrets — НИКОГДА не коммитить
+.env
+.env.*
+!.env.bot.example
+.bet_env
+*.key
+*.pem
+credentials.json
+secrets.yaml
+
+# Test artifacts
+.coverage
+htmlcov/
