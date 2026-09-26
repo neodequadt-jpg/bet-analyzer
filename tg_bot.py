@@ -639,7 +639,7 @@ def build_pipeline(skip_stale_hours: float = 1.0,
     smarkets = []
     try:
         import traceback
-        smarkets = fetch_smarkets_events(hours=72, max_events=10, deadline_sec=25)
+        smarkets = fetch_smarkets_events(hours=24, max_events=10, deadline_sec=25)
         print(f"[build_pipeline] smarkets events: {len(smarkets)}", file=sys.stderr)
     except Exception as _e:
         print(f"[build_pipeline] smarkets FAILED: {type(_e).__name__}: {_sanitize_error(_e)}", file=sys.stderr)
