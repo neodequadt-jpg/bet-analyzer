@@ -53,7 +53,7 @@ class ValueBetAnalyst:
                 {"role": "user", "content": prompt},
             ],
             "temperature": 0.3,
-            "max_tokens": 600,
+            "max_tokens": 800,
         }
         r = requests.post(OMNI_URL, headers=headers, json=payload, timeout=self.timeout)
         if r.status_code != 200:

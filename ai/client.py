@@ -68,7 +68,7 @@ risk_score: 0 = нет рисков, 100 = максимальный риск.
                 "model": MODEL,
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0,
-                "max_tokens": 500,
+                "max_tokens": 800,
                 "response_format": {"type": "json_object"},
             },
             timeout=self.timeout,
