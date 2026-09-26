@@ -809,6 +809,24 @@ def cmd_live(argv: list[str], chat_id=None) -> str:
     return "\n".join(lines)
 
 
+def cmd_live_match(sport: str, idx: int) -> str:
+    """Detailed match info for /live_match callback."""
+    sport_id = resolve_sport(sport)
+    if sport_id is None:
+        return "Match not found."
+    try:
+        events = fetch_events_by_sport(sport_id, hours=4)
+    except Exception:
+        return "Match not found."
+    if idx < 0 or idx >= len(events):
+        return "Match not found."
+    ev = events[idx]
+    res = f"<b>{esc(ev['home'])} vs {esc(ev['away'])}</b>"
+    if ev.get("league"):
+        res += f"\n{esc(ev['league'])}"
+    return res
+
+
 def cmd_value() -> tuple[str, dict]:
     t0 = time.time()
     results = build_pipeline()
