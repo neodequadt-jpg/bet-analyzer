@@ -39,3 +39,4 @@ secrets.yaml
 .coverage
 htmlcov/
 data/backtest/signals/
+data/state.json
