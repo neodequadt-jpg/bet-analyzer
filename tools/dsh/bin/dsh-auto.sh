@@ -86,13 +86,11 @@ echo "[dsh-auto] spec OK: $SPEC" | tee -a "$LOG"
 echo "[dsh-auto] === Phase 3: Execute ===" | tee -a "$LOG"
 
 # Модели: сильные первыми. 120B > 20B для агентных задач.
+# Gemini-only: Groq free TPM=8000 — DSH не помещается в лимит
 MODELS=(
-    "groq/openai/gpt-oss-120b"
-    "groq/qwen/qwen3.8-27b"
-    "groq/openai/gpt-oss-20b"
     "gemini/gemini-3.1-flash-lite-preview"
-    "groq/groq/compound"
     "gemini/gemini-3.6-flash"
+    "gemini/gemini-3.8-flash"
 )
 
 set_model() {
@@ -136,7 +134,7 @@ for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
 
     if echo "$OUT" | grep -qiE "cooling down|rate.limit|429|too many|PI_AI_ERROR"; then
         BACK=$(( 30 * (2 ** (attempt - 1)) ))
-        [ "$BACK" -gt 240 ] && BACK=240
+        [ "$BACK" -gt 300 ] && BACK=300
         echo "[dsh-auto] cooldown → ${BACK}s" | tee -a "$LOG"
         sleep "$BACK"
         continue
