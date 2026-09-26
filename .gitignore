@@ -38,3 +38,4 @@ secrets.yaml
 # Test artifacts
 .coverage
 htmlcov/
+data/backtest/signals/
