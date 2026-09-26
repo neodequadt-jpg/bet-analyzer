@@ -37,10 +37,10 @@ def _kelly(true_prob, odds):
     if odds <= 1.0:
         return 0.0
     b = odds - 1.0
-    p = true_prob
+    p = max(0.0, min(1.0, true_prob))
     q = 1.0 - p
     f = (b * p - q) / b
-    return max(0.0, f)
+    return max(0.0, min(1.0, f))
 
 
 def _deal_score(ev, confidence, trust):
