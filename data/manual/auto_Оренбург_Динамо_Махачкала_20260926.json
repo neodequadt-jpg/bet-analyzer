@@ -1,0 +1,46 @@
+{
+  "event_id": "auto_Оренбург_Динамо_Махачкала_20260926",
+  "sport": "football",
+  "league": "RPL",
+  "home": "Оренбург",
+  "away": "Динамо Махачкала",
+  "kickoff_iso": "1791626400",
+  "bookmakers": [
+    {
+      "name": "Фонбет",
+      "home": 2.5,
+      "draw": 3.45,
+      "away": 2.85,
+      "over": 2.07,
+      "under": 1.75,
+      "line": 2.5
+    },
+    {
+      "name": "Марафон",
+      "home": 2.63,
+      "draw": 3.48,
+      "away": 3.01,
+      "over": 2.07,
+      "under": 1.75,
+      "line": 2.5
+    },
+    {
+      "name": "Винлайн",
+      "home": 2.53,
+      "draw": 3.51,
+      "away": 2.64,
+      "over": 2.07,
+      "under": 1.75,
+      "line": 2.5
+    },
+    {
+      "name": "PARI",
+      "home": 2.66,
+      "draw": 3.29,
+      "away": 2.96,
+      "over": 2.07,
+      "under": 1.75,
+      "line": 2.5
+    }
+  ]
+}

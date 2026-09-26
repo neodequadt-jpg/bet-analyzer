@@ -1,0 +1,62 @@
+{
+  "ts": 1790387344.6145217,
+  "iso": "2026-09-26T01:49:04.614523+00:00",
+  "count": 5,
+  "signals": [
+    {
+      "event": "Исландия vs Эстония",
+      "outcome": "away",
+      "odds": 14.493,
+      "bookmaker": "Smarkets",
+      "ev": 0.2044,
+      "kelly": 0.0151,
+      "league": "UEFA Nations League C",
+      "kickoff": "26.09 19:00",
+      "deal_score": 73
+    },
+    {
+      "event": "Испания vs Хорватия",
+      "outcome": "draw",
+      "odds": 6.601,
+      "bookmaker": "Smarkets",
+      "ev": 0.1664,
+      "kelly": 0.0297,
+      "league": "UEFA Nations League A",
+      "kickoff": "29.09 21:45",
+      "deal_score": 73
+    },
+    {
+      "event": "Сербия vs Нидерланды",
+      "outcome": "home",
+      "odds": 8.598,
+      "bookmaker": "Smarkets",
+      "ev": 0.1607,
+      "kelly": 0.0212,
+      "league": "UEFA Nations League A",
+      "kickoff": "27.09 19:00",
+      "deal_score": 73
+    },
+    {
+      "event": "Германия vs Греция",
+      "outcome": "away",
+      "odds": 8.403,
+      "bookmaker": "Smarkets",
+      "ev": 0.126,
+      "kelly": 0.017,
+      "league": "UEFA Nations League A",
+      "kickoff": "27.09 21:45",
+      "deal_score": 66
+    },
+    {
+      "event": "Дания vs Уэльс",
+      "outcome": "away",
+      "odds": 8.0,
+      "bookmaker": "Smarkets",
+      "ev": 0.1208,
+      "kelly": 0.0173,
+      "league": "UEFA Nations League A",
+      "kickoff": "27.09 19:00",
+      "deal_score": 66
+    }
+  ]
+}
