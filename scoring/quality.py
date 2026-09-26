@@ -3,12 +3,18 @@
 MIN_EV = 0.03
 MAX_EV = 0.25
 MIN_KELLY = 0.005
-MAX_KELLY = 0.03
+MAX_KELLY = 0.06
 MAX_BK_DIVERGENCE = 0.25
 
 
 def is_high_quality_value(vb, event_odds_by_bk=None):
-    ev = getattr(vb, "ev", None)
+    if isinstance(vb, dict):
+        ev = vb.get("ev")
+        kelly = vb.get("kelly")
+    else:
+        ev = getattr(vb, "ev", None)
+        kelly = getattr(vb, "kelly", None)
+
     if ev is None:
         return False, "no_ev"
     if ev < MIN_EV:
@@ -16,7 +22,6 @@ def is_high_quality_value(vb, event_odds_by_bk=None):
     if ev > MAX_EV:
         return False, f"ev_high:{ev:.3f}"
 
-    kelly = getattr(vb, "kelly", None)
     if kelly is None:
         return False, "no_kelly"
     if kelly < MIN_KELLY:

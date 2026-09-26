@@ -30,7 +30,17 @@ class TestQuality(unittest.TestCase):
 
     def test_reject_high_kelly(self):
         from scoring.quality import is_high_quality_value
-        ok, _ = is_high_quality_value(FakeVB(0.06, 0.05))
+        ok, _ = is_high_quality_value(FakeVB(0.06, 0.07))
+        self.assertFalse(ok)
+
+    def test_quality_accepts_kelly_4pct(self):
+        from scoring.quality import is_high_quality_value
+        ok, _ = is_high_quality_value(FakeVB(0.05, 0.045))
+        self.assertTrue(ok)
+
+    def test_quality_rejects_kelly_7pct(self):
+        from scoring.quality import is_high_quality_value
+        ok, _ = is_high_quality_value(FakeVB(0.05, 0.075))
         self.assertFalse(ok)
 
 
