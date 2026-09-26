@@ -102,9 +102,13 @@ from pathlib import Path
 model = sys.argv[1]
 p = Path.home() / ".dsh" / "settings.yaml"
 s = p.read_text()
-s = re.sub(r"(agent-default-model:\n provider: omniroute\n model: )[^\n]+",
-           r"\g<1>" + model, s)
-p.write_text(s)
+pattern = r"(agent-default-model:\n\s+provider: omniroute\n\s+model: )[^\n]+"
+new_s, n = re.subn(pattern, lambda m: m.group(1) + model, s)
+if n == 0:
+    print("[set_model] WARN: pattern did not match", file=sys.stderr)
+else:
+    p.write_text(new_s)
+    print("[set_model] -> " + model)
 PYEOF
 }
 
