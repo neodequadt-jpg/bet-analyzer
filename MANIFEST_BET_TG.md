@@ -144,3 +144,25 @@ sanitize_in_code:
   - tg_bot.py:_sanitize_error() — маскирует bot tokens в error-print
   - Используется во всех except-блоках, логирующих URL
 
+
+## VERSION HISTORY
+
+### v0004 (2026-09-26) — Smarkets consensus + forward-test
+
+done:
+  - Smarkets exchange as 2nd BK → real value-bets (Fonbet + Smarkets consensus)
+  - Quality filter: EV 3-25%, Kelly 0.5-3%, BK divergence < 25%
+  - Smarkets cache 5min + warm-up on start (19.7s → 3s)
+  - /signals command — top-5 value with Kelly stakes
+  - /backtest command — forward-test stats + ROI (auto-resolve)
+  - scoring/resolver.py — TheSportsDB auto-resolve
+  - scoring/tracker.py — signal logging + resolved_stats()
+  - cron: 12:00 MSK log /signals, 23:30 MSK resolve results
+  - SECURITY RULES + redact() + sanitize error prints
+  - 111 tests passing
+
+roadmap_v0005:
+  - Backtest ROI on real data (после 2-4 недель накопления)
+  - Регенерация токенов (после утечек в чате)
+  - Cross-validation с 3-м БК (Лига Ставок HTML scraper)
+  - Улучшить Smarkets ликвидность фильтр (bid quantity > 10000)
