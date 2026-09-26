@@ -34,3 +34,32 @@
 - One Goal / One Commit — exit 5 catches no-commit
 - Evidence Before Authority — Phase 4.5 не доверяет DSH
 - Reproducibility — EVR per run
+
+---
+
+## Update 2: Dogfooding + EVR summary (2026-09-26)
+
+### Self-modification loop closed
+- Commit `e3a9e5e` — DSH через dsh-auto правил **свой же** `tools/dsh/lib/write_evr.py`
+- Phase 4.5 выполнилась через **новую версию** write_evr.py (dogfooding)
+- Git rollback защищает infra-lib после миграции в repo
+
+### EVR summary enhancement
+- `write_evr.py` v2 читает `verifications.json` и включает
+  `verifications_summary: {total, ok, failed, failed_cmds}` в run.json
+- EVR.md получил секцию `## Verifications`
+- Validated на FAIL-path run-20260926-123929 (exit 6, rollback)
+
+### Infra in git
+- `tools/dsh/` — vendored: dsh-auto.sh, extract_verifications.py, write_evr.py, phase45.sh
+- Symlinks из `~/.dsh/` → `~/BET-ANALYZER/tools/dsh/`
+- Rollback через `git reset --hard` восстанавливает весь toolchain
+
+### Evidence table
+| Run | Path | Model | Result |
+|---|---|---|---|
+| run-20260926-113348 | FAIL (exit 6) | groq/openai/gpt-oss-120b | verif 3 (2 ok, 1 fail) |
+| run-20260926-114407 | PASS | groq/openai/gpt-oss-120b | verif 2 (all ok) |
+| run-20260926-115425 | PASS (live task G-AI-0001) | groq/openai/gpt-oss-120b | verif 3 (all ok) |
+| run-20260926-122908 | PASS (dogfooding) | groq/openai/gpt-oss-120b | verif 3 (all ok) |
+| run-20260926-123929 | FAIL (exit 6, EVR summary) | groq/openai/gpt-oss-120b | verif 2 (1 ok, 1 fail) |
