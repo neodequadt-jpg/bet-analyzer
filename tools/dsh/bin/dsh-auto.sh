@@ -146,6 +146,14 @@ for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
 done
 [ "$DSH_OK" -eq 1 ] || die 3 "DSH failed after $MAX_ATTEMPTS attempts (model chain exhausted)"
 
+# ============ PHASE 3.5: PARTIAL EVR (crash-safe) ============
+PARTIAL_HEAD=$(git rev-parse HEAD)
+if [ "$PARTIAL_HEAD" != "$PRE_HEAD" ]; then
+    python3 "$HOME/.dsh/lib/write_evr.py" "$RUN_DIR" PARTIAL \
+        "phase3_complete_model_${MODEL_USED}_pre_${PRE_HEAD}_post_${PARTIAL_HEAD}" 2>/dev/null || true
+    echo "[dsh-auto] partial EVR written (post=$PARTIAL_HEAD)" | tee -a "$LOG"
+fi
+
 # ============ PHASE 4: VERIFY ============
 echo "[dsh-auto] === Phase 4: Verify ===" | tee -a "$LOG"
 
