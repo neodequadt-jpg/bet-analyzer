@@ -88,3 +88,28 @@
 - run-20260926-164637: `7b6e96d` Add cmd_live_match
 - 5 verifications (py_compile, run_tests, SINGLE_OK, VALUE_INTACT, OK)
 - Tests 119 → 119 без регрессий
+
+---
+
+## Update 4: Z-режим (3 дня) → H (Gemini paid) — 2026-09-26
+
+### Решение
+- **Сейчас (Z):** Gemini free + backoff max 300s. dsh-auto работает, но медленно (5-15 мин/задача).
+- **Через 3 дня (H):** перейти на Gemini paid ($5/мес). Убирает cooldown полностью, скорость 30 сек/задача.
+
+### Что отложено
+- cfp/* — Cloudflare Playground (ERR_PROXY при Chrome-in-sandbox)
+- opencode-zen — free tier закрыт для внешних API
+- Modellix — не тестирован, требует регистрации
+- Ollama — невозможно на 7.2 GB RAM / 2 CPU / без GPU
+- Groq — TPM=8000 < DSH payload
+
+### Обоснование Z
+- Продукт (BET-ANALYZER) от dsh-auto не зависит
+- 3 дня — достаточно для нескольких задач в медленном режиме
+- $5 через 3 дня = осознанное решение, не "сейчас"
+
+### Что делать в Z-режиме
+- Каждая задача через dsh-auto с паузами (5-15 мин)
+- Не трогать мета-инфраструктуру
+- Только продуктовые задачи: live-inline-keyboard, push_smarkets_cache, inline /value
