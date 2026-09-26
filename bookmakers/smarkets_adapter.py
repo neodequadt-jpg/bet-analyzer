@@ -3,9 +3,10 @@ from bookmakers.parser import OddsEvent
 from bookmakers.smarkets_provider import fetch_events
 
 
-def fetch_smarkets_events(hours: int = 720, max_events: int = 50) -> list[OddsEvent]:
+def fetch_smarkets_events(hours: int = 720, max_events: int = 50,
+                          deadline_sec: int = 25) -> list[OddsEvent]:
     """Fetch Smarkets football matches and convert to OddsEvent list."""
-    raw = fetch_events(hours=hours, max_events=max_events)
+    raw = fetch_events(hours=hours, max_events=max_events, deadline_sec=deadline_sec)
     out: list[OddsEvent] = []
     for e in raw:
         try:

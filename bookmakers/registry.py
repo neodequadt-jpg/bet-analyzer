@@ -17,6 +17,7 @@ class BookmakerInfo:
     max_stake: int
     withdrawal_hours: float
     trust_score: float
+    is_exchange: bool = False
 
 
 BOOKMAKERS = [
@@ -31,7 +32,7 @@ BOOKMAKERS = [
     BookmakerInfo("Мелбет",      "Второй", 2021, "melbet.ru",     5.0, 200_000,   6.0, 0.80),
     BookmakerInfo("Балтбет",     "Первый", 2009, "baltbet.ru",    5.5, 200_000,   6.5, 0.78),
     BookmakerInfo("Марафон",     "Первый", 2010, "marathonbet.ru", 3.0, 500_000,   4.0, 0.85),
-    BookmakerInfo("Smarkets", "n/a", 2016, "smarkets.com", 0.5, 10_000_000, 0.1, 0.95),
+    BookmakerInfo("Smarkets", "n/a", 2016, "smarkets.com", 0.5, 10_000_000, 0.1, 0.95, is_exchange=True),
 ]
 
 

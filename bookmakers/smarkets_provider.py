@@ -79,7 +79,7 @@ def _cache_save(events):
         pass
 
 
-def fetch_events(hours=72, max_events=30):
+def fetch_events(hours=72, max_events=30, deadline_sec=25):
     # Cache hit?
     cached = _cache_load()
     if cached is not None:
@@ -92,8 +92,10 @@ def fetch_events(hours=72, max_events=30):
     now = time.time()
     lo = now - 3600
     hi = now + hours * 3600
+    deadline = time.monotonic() + deadline_sec
 
-    r = _get(session, f"{BASE}/events/?type=football_match&state=upcoming&limit=50")
+    r = _get(session, f"{BASE}/events/?type=football_match&state=upcoming&limit=50",
+             timeout=10, retries=2)
     if r is None or r.status_code != 200:
         print(f"[smarkets] events fail: {r.status_code if r else 'None'}")
         return []
@@ -102,6 +104,9 @@ def fetch_events(hours=72, max_events=30):
     out = []
     for ev in (data.get("events") or []):
         if len(out) >= max_events:
+            break
+        if time.monotonic() > deadline:
+            print(f"[smarkets] deadline hit ({deadline_sec}s), collected {len(out)}")
             break
         start_dt = ev.get("start_datetime")
         if not start_dt:
@@ -119,7 +124,9 @@ def fetch_events(hours=72, max_events=30):
             continue
         home, _, away = name.partition(" vs ")
 
-        r2 = _get(session, f"{BASE}/events/{ev_id}/markets/")
+        r2 = _get(session, f"{BASE}/events/{ev_id}/markets/", timeout=6, retries=1)
+        if time.monotonic() > deadline:
+            break
         markets = (r2.json() if r2 else {}).get("markets", []) if r2 else []
         market_id = None
         for m in markets:
@@ -130,7 +137,9 @@ def fetch_events(hours=72, max_events=30):
         if not market_id:
             continue
 
-        r3 = _get(session, f"{BASE}/markets/{market_id}/contracts/")
+        r3 = _get(session, f"{BASE}/markets/{market_id}/contracts/", timeout=6, retries=1)
+        if time.monotonic() > deadline:
+            break
         contracts = (r3.json() if r3 else {}).get("contracts", []) if r3 else []
         cid_by_side = {}
         for c in contracts:
@@ -140,7 +149,7 @@ def fetch_events(hours=72, max_events=30):
         if not all(k in cid_by_side for k in ("HOME", "DRAW", "AWAY")):
             continue
 
-        r4 = _get(session, f"{BASE}/markets/{market_id}/quotes/")
+        r4 = _get(session, f"{BASE}/markets/{market_id}/quotes/", timeout=6, retries=1)
         quotes = (r4.json() if r4 else {}) or {}
 
         def best_back(cid):

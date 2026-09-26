@@ -132,11 +132,20 @@ def evaluate_event(events):
         odds_map = market_consensus[outcome].bookmaker_odds
         if not odds_map:
             continue
-        best_bk = max(odds_map, key=odds_map.get)
+        # Исключаем биржи (Smarkets, ~0 margin): используются только
+        # для калибровки consensus. Value-ставку пользователь должен
+        # мочь реально поставить в легальном РФ БК (ЦУПИС).
+        legal_map = {
+            bk: o for bk, o in odds_map.items()
+            if not getattr(get_bookmaker(bk), "is_exchange", False)
+        }
+        if not legal_map:
+            continue
+        best_bk = max(legal_map, key=legal_map.get)
         bk_info = get_bookmaker(best_bk)
         best_odds[outcome] = {
             "bookmaker": best_bk,
-            "odds": odds_map[best_bk],
+            "odds": legal_map[best_bk],
             "trust_score": bk_info.trust_score if bk_info else 0.5,
             "cupis": bk_info.cupis if bk_info else None,
         }
