@@ -50,7 +50,8 @@ def _sanitize_error(text) -> str:
 # 1. Config
 # ---------------------------------------------------------------------------
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
-API_BASE = "https://api.telegram.org/bot" + BOT_TOKEN
+TG_API_BASE = os.environ.get("TG_API_BASE", "https://api.telegram.org")
+API_BASE = TG_API_BASE.rstrip("/") + "/bot" + BOT_TOKEN
 
 def _parse_admin_ids(raw: str) -> set:
     """Parse a comma-separated TG_ADMIN_ID into a set of chat_ids."""
