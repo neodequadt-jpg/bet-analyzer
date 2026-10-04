@@ -709,34 +709,85 @@ def _human_kickoff_delta(kickoff_ts) -> str:
     return f"{dt:%d.%m %H:%M}"
 
 
-def cmd_mma(hours: int = 24 * 7) -> str:
-    """/mma - upcoming MMA tournaments with 1v1 odds."""
+def _mma_grouped(hours: int = 24 * 7):
+    """Shared helper: fetch + group + sort MMA fights."""
+    events = fetch_mma_events(hours=hours)
+    groups = group_by_tournament(events)
+    ordered = sorted(groups.keys(),
+                     key=lambda k: min(e["start_ts"] for e in groups[k]))
+    return groups, ordered
+
+
+def cmd_mma_menu(hours: int = 24 * 7) -> tuple[str, dict]:
+    """/mma - show list of tournaments as inline buttons."""
+    try:
+        groups, ordered = _mma_grouped(hours=hours)
+    except Exception as e:
+        return ("\u26A0\uFE0F MMA error: " + esc(str(e))[:300], get_main_keyboard(0))
+
+    if not ordered:
+        return ("\U0001F94A MMA: \u0431\u043b\u0438\u0436\u0430\u0439\u0448\u0438\u0445 \u0431\u043e\u0451\u0432 \u043d\u0435\u0442.",
+                get_main_keyboard(0))
+
     from datetime import datetime, timezone, timedelta
     tz_msk = timezone(timedelta(hours=3))
-    try:
-        events = fetch_mma_events(hours=hours)
-    except Exception as e:
-        return "\u26A0\uFE0F MMA error: " + esc(str(e))[:400]
-    if not events:
-        return "\U0001F94A MMA: нет ближайших боёв."
-    groups = group_by_tournament(events)
-    ordered = sorted(groups.keys(), key=lambda k: min(e["start_ts"] for e in groups[k]))
-    total = sum(len(v) for v in groups.values())
-    lines = [f"\U0001F94A <b>MMA \u2014 {len(ordered)} турниров, {total} боёв</b>"]
-    for t in ordered:
+
+    total = sum(len(groups[t]) for t in ordered)
+    lines = [f"\U0001F94A <b>MMA \u2014 \u0432\u044b\u0431\u0435\u0440\u0438 \u0442\u0443\u0440\u043d\u0438\u0440</b>",
+             f"{len(ordered)} \u0442\u0443\u0440\u043d\u0438\u0440\u043e\u0432, {total} \u0431\u043e\u0451\u0432",
+             ""]
+
+    keyboard_rows = []
+    for i, t in enumerate(ordered):
         fights = sorted(groups[t], key=lambda e: e["start_ts"])
         first_dt = datetime.fromtimestamp(fights[0]["start_ts"], tz=tz_msk)
-        lines.append("")
-        lines.append(f"<b>\U0001F3C6 {esc(t)}</b> \u2014 {first_dt:%d.%m %H:%M} MSK")
-        for f in fights:
-            dt = datetime.fromtimestamp(f["start_ts"], tz=tz_msk)
-            oh = _format_odds(f["odds_home"]) if f["odds_home"] else "\u2014"
-            oa = _format_odds(f["odds_away"]) if f["odds_away"] else "\u2014"
-            lines.append(
-                f"  \u2022 {dt:%H:%M} {esc(f['home'])} \u2014 {esc(f['away'])}"
-                f"  <code>{oh} / {oa}</code>"
-            )
-    return "\n".join(lines)
+        keyboard_rows.append([{
+            "text": f"{t} \u2014 {first_dt:%d.%m} ({len(fights)})",
+            "callback_data": f"mma_tournament:{i}",
+        }])
+
+    keyboard_rows.append([{"text": "\u2B05\uFE0F \u041d\u0430\u0437\u0430\u0434",
+                            "callback_data": "back:main"}])
+    return ("\n".join(lines), {"inline_keyboard": keyboard_rows})
+
+
+def cmd_mma_tournament(idx: int, hours: int = 24 * 7) -> tuple[str, dict]:
+    """Show fights of a single tournament (idx = position in sorted list)."""
+    try:
+        groups, ordered = _mma_grouped(hours=hours)
+    except Exception as e:
+        return ("\u26A0\uFE0F MMA error: " + esc(str(e))[:300],
+                {"inline_keyboard": [[{"text": "\u2B05\uFE0F", "callback_data": "mma_menu"}]]})
+
+    if idx < 0 or idx >= len(ordered):
+        return ("\u26A0\uFE0F \u0422\u0443\u0440\u043d\u0438\u0440 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d.",
+                {"inline_keyboard": [[{"text": "\u2B05\uFE0F \u041a \u0442\u0443\u0440\u043d\u0438\u0440\u0430\u043c",
+                                       "callback_data": "mma_menu"}]]})
+
+    from datetime import datetime, timezone, timedelta
+    tz_msk = timezone(timedelta(hours=3))
+
+    t = ordered[idx]
+    fights = sorted(groups[t], key=lambda e: e["start_ts"])
+    first_dt = datetime.fromtimestamp(fights[0]["start_ts"], tz=tz_msk)
+
+    lines = [f"\U0001F3C6 <b>{esc(t)}</b>",
+             f"{first_dt:%d.%m %H:%M} MSK \u2014 {len(fights)} \u0431\u043e\u0451\u0432",
+             ""]
+    for f in fights:
+        dt = datetime.fromtimestamp(f["start_ts"], tz=tz_msk)
+        oh = _format_odds(f["odds_home"]) if f["odds_home"] else "\u2014"
+        oa = _format_odds(f["odds_away"]) if f["odds_away"] else "\u2014"
+        lines.append(
+            f"  \u2022 {dt:%H:%M} {esc(f['home'])} \u2014 {esc(f['away'])}"
+            f"  <code>{oh} / {oa}</code>"
+        )
+
+    keyboard = {"inline_keyboard": [[
+        {"text": "\u2B05\uFE0F \u041a \u0442\u0443\u0440\u043d\u0438\u0440\u0430\u043c",
+         "callback_data": "mma_menu"},
+    ]]}
+    return ("\n".join(lines), keyboard)
 
 
 def cmd_value_match(idx: int) -> str:
@@ -1647,7 +1698,9 @@ def dispatch(command: str) -> str:
         # empty list -> cmd_live falls back to defaults (tt, 1h)
         return cmd_live(_LAST_LIVE_ARGV, chat_id=_LAST_CHAT_ID)
     if command == "/mma":
-        return cmd_mma()
+        text, kb = cmd_mma_menu()
+        send_message(_LAST_CHAT_ID, text, reply_markup=kb)
+        return ""
     return "Unknown command. Use /help to see available commands."
 
 
@@ -1735,6 +1788,21 @@ def _handle_callback(cb):
         if not reply:
             reply = "\u26a0\ufe0f \u041d\u0435 \u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e \u043c\u0430\u0442\u0447\u0435\u0439 \u0441 \u043a\u044d\u0444\u0430\u043c\u0438 \u0434\u043b\u044f \u044d\u043a\u0441\u043f\u0440\u0435\u0441\u0441\u0430."
         send_message(chat_id, reply, reply_markup=get_main_keyboard(chat_id))
+        return
+
+    # ---- MMA submenu ----
+    if data == "mma_menu":
+        text, kb = cmd_mma_menu()
+        send_message(chat_id, text, reply_markup=kb)
+        return
+    if data.startswith("mma_tournament:"):
+        try:
+            _, idx_s = data.split(":", 1)
+            idx = int(idx_s)
+        except Exception:
+            return
+        text, kb = cmd_mma_tournament(idx)
+        send_message(chat_id, text, reply_markup=kb)
         return
 
     if data == "/lang":
