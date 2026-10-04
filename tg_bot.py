@@ -709,6 +709,16 @@ def _human_kickoff_delta(kickoff_ts) -> str:
     return f"{dt:%d.%m %H:%M}"
 
 
+def plural_ru(n: int, one: str, few: str, many: str) -> str:
+    """Russian plural form: 1 турнир, 2-4 турнира, 5+ турниров."""
+    n = abs(int(n))
+    if n % 10 == 1 and n % 100 != 11:
+        return one
+    if 2 <= n % 10 <= 4 and not (12 <= n % 100 <= 14):
+        return few
+    return many
+
+
 def _mma_grouped(hours: int = 24 * 7):
     """Shared helper: fetch + group + sort MMA fights."""
     events = fetch_mma_events(hours=hours)
@@ -733,8 +743,10 @@ def cmd_mma_menu(hours: int = 24 * 7) -> tuple[str, dict]:
     tz_msk = timezone(timedelta(hours=3))
 
     total = sum(len(groups[t]) for t in ordered)
+    t_word = plural_ru(len(ordered), "\u0442\u0443\u0440\u043d\u0438\u0440", "\u0442\u0443\u0440\u043d\u0438\u0440\u0430", "\u0442\u0443\u0440\u043d\u0438\u0440\u043e\u0432")
+    f_word = plural_ru(total, "\u0431\u043e\u0439", "\u0431\u043e\u044f", "\u0431\u043e\u0451\u0432")
     lines = [f"\U0001F94A <b>MMA \u2014 \u0432\u044b\u0431\u0435\u0440\u0438 \u0442\u0443\u0440\u043d\u0438\u0440</b>",
-             f"{len(ordered)} \u0442\u0443\u0440\u043d\u0438\u0440\u043e\u0432, {total} \u0431\u043e\u0451\u0432",
+             f"{len(ordered)} {t_word}, {total} {f_word}",
              ""]
 
     keyboard_rows = []
@@ -771,8 +783,9 @@ def cmd_mma_tournament(idx: int, hours: int = 24 * 7) -> tuple[str, dict]:
     fights = sorted(groups[t], key=lambda e: e["start_ts"])
     first_dt = datetime.fromtimestamp(fights[0]["start_ts"], tz=tz_msk)
 
+    f_word = plural_ru(len(fights), "\u0431\u043e\u0439", "\u0431\u043e\u044f", "\u0431\u043e\u0451\u0432")
     lines = [f"\U0001F3C6 <b>{esc(t)}</b>",
-             f"{first_dt:%d.%m %H:%M} MSK \u2014 {len(fights)} \u0431\u043e\u0451\u0432",
+             f"{first_dt:%d.%m %H:%M} MSK \u2014 {len(fights)} {f_word}",
              ""]
     for f in fights:
         dt = datetime.fromtimestamp(f["start_ts"], tz=tz_msk)
