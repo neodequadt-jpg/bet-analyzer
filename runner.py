@@ -20,8 +20,20 @@ from bookmakers.manual_source import list_manual_events, parse_manual
 from bookmakers.fonbet_api import fetch_rpl_odds
 from bookmakers.normalizer import merge, group_label
 from ai.analyst import ValueBetAnalyst
+from bookmakers.flashscore_injuries import lookup_injuries_for_event
+from bookmakers.flashscore_mid_map import load_mid_map
 from market.consensus import evaluate_event
 from scoring.ev import evaluate_value
+
+_MID_MAP = None
+
+
+def _get_mid_map():
+    global _MID_MAP
+    if _MID_MAP is None:
+        _MID_MAP = load_mid_map()
+    return _MID_MAP
+
 
 RUNS_DIR = Path("data/runs")
 RUNS_DIR.mkdir(parents=True, exist_ok=True)
@@ -153,10 +165,16 @@ def main():
             if r["value_bets"]:
                 print("\n--- AI REPORT ---")
                 try:
+                    injuries = lookup_injuries_for_event(
+                        r["event"].get("home", ""),
+                        r["event"].get("away", ""),
+                        mid_map=_get_mid_map(),
+                    )
                     report = ai.analyze(
                         event=r["event"],
                         consensus=r["consensus"],
                         value_bets=r["value_bets"],
+                        injuries=injuries,
                     )
                     print(report)
                     r["ai_report"] = report

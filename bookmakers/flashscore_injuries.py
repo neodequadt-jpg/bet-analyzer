@@ -55,3 +55,80 @@ def parse_missing_players(html: str) -> dict:
             result[key].append({"name": name, "reason": reason})
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# Cache lookup (read-only, no network)
+# ---------------------------------------------------------------------------
+
+import json
+from pathlib import Path
+
+
+INJURIES_CACHE_DIR = Path("data/cache/flashscore/injuries")
+
+
+def injuries_cache_path(mid: str) -> Path:
+    return INJURIES_CACHE_DIR / f"{mid}.json"
+
+
+def save_injuries(mid: str, data: dict) -> Path:
+    """Persist parsed injuries as a JSON cache file."""
+    INJURIES_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    path = injuries_cache_path(mid)
+    path.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return path
+
+
+def load_injuries(mid: str) -> dict | None:
+    """Read cached injuries, or None if not cached."""
+    if not mid:
+        return None
+    path = injuries_cache_path(mid)
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    return {
+        "home": data.get("home") or [],
+        "away": data.get("away") or [],
+    }
+
+
+def lookup_injuries_for_event(
+    home: str,
+    away: str,
+    *,
+    mid_map: list[dict] | None = None,
+) -> dict:
+    """
+    Best-effort injuries lookup for a match by team names.
+
+    Reads only cached injuries. No network calls.
+
+    Returns {"home": [], "away": []} when:
+      - mid not found in mid_map
+      - cache entry missing
+      - cache file malformed
+    """
+    empty = {"home": [], "away": []}
+    if mid_map is None:
+        from bookmakers.flashscore_mid_map import load_mid_map
+        mid_map = load_mid_map()
+    if not mid_map:
+        return empty
+
+    from bookmakers.flashscore_mid_map import find_mid
+    mid = find_mid(mid_map, home, away)
+    if not mid:
+        return empty
+
+    cached = load_injuries(mid)
+    return cached if cached else empty

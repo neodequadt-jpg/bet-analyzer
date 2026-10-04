@@ -47,3 +47,43 @@ def test_no_missing_block_returns_empty_lists():
         "home": [],
         "away": [],
     }
+
+
+# ---------------------------------------------------------------------------
+# Cache lookup tests
+# ---------------------------------------------------------------------------
+
+from bookmakers.flashscore_injuries import (  # noqa: E402
+    save_injuries, load_injuries,
+    lookup_injuries_for_event,
+    injuries_cache_path,
+)
+
+
+def test_save_and_load_injuries_roundtrip(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "bookmakers.flashscore_injuries.INJURIES_CACHE_DIR", tmp_path,
+    )
+    mid = "TEST_MID"
+    payload = {
+        "home": [{"name": "A", "reason": "Knee Injury"}],
+        "away": [{"name": "B", "reason": "Inactive"}],
+    }
+    save_injuries(mid, payload)
+    loaded = load_injuries(mid)
+    assert loaded == payload
+
+
+def test_load_injuries_missing_returns_none():
+    assert load_injuries("NO_SUCH_MID_12345") is None
+
+
+def test_lookup_returns_empty_when_mid_map_empty():
+    assert lookup_injuries_for_event("A", "B", mid_map=[]) == {"home": [], "away": []}
+
+
+def test_lookup_returns_empty_when_mid_not_found():
+    mid_map = [{"home_norm": "x", "away_norm": "y", "mid": "12345"}]
+    assert lookup_injuries_for_event("Foo", "Bar", mid_map=mid_map) == {
+        "home": [], "away": [],
+    }
