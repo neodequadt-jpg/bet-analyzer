@@ -58,8 +58,11 @@ def sync_one(mid: str, *, force: bool = False, force_overwrite: bool = False, ti
         print(f"[{mid}] parse=0, cache={existing_total} — preserving cache")
         return existing
 
-    path = save_injuries(mid, data)
-    print(f"[{mid}] saved {total} players -> {path}")
+    saved_path = save_injuries(mid, data)
+    if saved_path is None:
+        print(f"[{mid}] empty result, not persisted (no evidence)")
+        return data
+    print(f"[{mid}] saved {total} players -> {saved_path}")
     return data
 
 

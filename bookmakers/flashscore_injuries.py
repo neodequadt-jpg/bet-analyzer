@@ -72,8 +72,25 @@ def injuries_cache_path(mid: str) -> Path:
     return INJURIES_CACHE_DIR / f"{mid}.json"
 
 
-def save_injuries(mid: str, data: dict) -> Path:
-    """Persist parsed injuries as a JSON cache file."""
+def _injuries_is_empty(data: dict) -> bool:
+    if not isinstance(data, dict):
+        return True
+    home = data.get("home") or []
+    away = data.get("away") or []
+    return not home and not away
+
+
+def save_injuries(mid: str, data: dict) -> Path | None:
+    """Persist parsed injuries as a JSON cache file.
+
+    Empty results are NOT persisted (variant A: evidence only).
+    If an empty result is passed and a file already exists, the file
+    is left untouched (caller should have handled data-loss guard).
+
+    Returns the path if written, None if skipped.
+    """
+    if _injuries_is_empty(data):
+        return None
     INJURIES_CACHE_DIR.mkdir(parents=True, exist_ok=True)
     path = injuries_cache_path(mid)
     path.write_text(

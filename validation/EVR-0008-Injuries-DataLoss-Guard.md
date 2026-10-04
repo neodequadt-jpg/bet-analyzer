@@ -55,3 +55,16 @@ Cache is evidence; guards prevent accidental evidence destruction.
 
 ## Related
 - EVR-0007: Flashscore Missing Players Timing Window
+
+## Addendum: Evidence-Only Persistence (2026-10-04)
+
+Empty parse results are not written to disk.
+
+Rules combined:
+1. `save_injuries()` returns `None` for empty results (no file).
+2. If cache already non-empty and new parse is empty, cache preserved (guard).
+3. `data/injuries/*.json` in git == non-empty evidence only.
+
+Verified:
+- `--mid navVwj04 --force` → "empty result, not persisted (no evidence)"
+- `data/injuries/navVwj04.json` not created
