@@ -65,7 +65,7 @@ import json
 from pathlib import Path
 
 
-INJURIES_CACHE_DIR = Path("data/cache/flashscore/injuries")
+INJURIES_CACHE_DIR = Path("data/injuries")
 
 
 def injuries_cache_path(mid: str) -> Path:

@@ -1,0 +1,22 @@
+{
+  "home": [
+    {
+      "name": "Anderson E.",
+      "reason": "Yellow Cards"
+    },
+    {
+      "name": "Filin A.",
+      "reason": "Knee Injury"
+    }
+  ],
+  "away": [
+    {
+      "name": "Wendel",
+      "reason": "Inactive"
+    },
+    {
+      "name": "Gustavo Mantuan",
+      "reason": "Inactive"
+    }
+  ]
+}
