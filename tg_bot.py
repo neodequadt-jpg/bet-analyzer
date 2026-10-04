@@ -252,6 +252,7 @@ def get_main_keyboard(chat_id) -> dict:
             ],
             [
                 {"text": _t(chat_id, "kb_status"), "callback_data": "/status"},
+                {"text": _t(chat_id, "kb_lang"),   "callback_data": "/lang"},
                 {"text": "\U0001F94A MMA",         "callback_data": "/mma"},
             ],
         ],
