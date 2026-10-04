@@ -20,6 +20,56 @@ from bookmakers.normalizer import normalize_team
 DEFAULT_PATH = Path("data/mid_map.json")
 
 
+import re
+from datetime import datetime, timezone, timedelta
+
+
+_KICKOFF_RE = re.compile(r"^(\d{2})\.(\d{2})\.\s*(\d{2}):(\d{2})$")
+
+
+def parse_kickoff(text: str, ref_year: int | None = None) -> int | None:
+    """Parse 'DD.MM. HH:MM' -> unix ts (Moscow, UTC+3).
+
+    Flashscore shows kickoff as '16.09. 18:30' (no year).
+    Year inferred: if month < current month, assume next year.
+
+    Returns unix seconds, or None if format is unknown.
+    """
+    if not text:
+        return None
+    m = _KICKOFF_RE.match(text.strip())
+    if not m:
+        return None
+    dd, mm, hh, mi = (int(x) for x in m.groups())
+    msk = timezone(timedelta(hours=3))
+    now = datetime.now(tz=msk)
+
+    if ref_year is not None:
+        year = ref_year
+    else:
+        # Heuristic: choose the year that puts the kickoff closest to now
+        # but within [-30d, +120d] window; otherwise assume current year.
+        candidates = [now.year, now.year - 1, now.year + 1]
+        best = None
+        best_delta = None
+        for y in candidates:
+            try:
+                dt = datetime(y, mm, dd, hh, mi, tzinfo=msk)
+            except ValueError:
+                continue
+            delta = abs((dt - now).total_seconds())
+            if best_delta is None or delta < best_delta:
+                best = y
+                best_delta = delta
+        year = best if best is not None else now.year
+
+    try:
+        dt = datetime(year, mm, dd, hh, mi, tzinfo=msk)
+    except ValueError:
+        return None
+    return int(dt.timestamp())
+
+
 def build_mid_map_from_html(html: str) -> list[dict]:
     """Parse fixtures HTML -> list of records with normalized keys."""
     if not html:
@@ -38,13 +88,15 @@ def build_mid_map_from_html(html: str) -> list[dict]:
         if key in seen:
             continue
         seen.add(key)
+        kickoff_text = row.get("kickoff_text") or ""
         records.append({
             "mid": mid,
             "home": home,
             "away": away,
             "home_norm": home_norm,
             "away_norm": away_norm,
-            "kickoff": row.get("kickoff_text") or "",
+            "kickoff": kickoff_text,
+            "kickoff_ts": parse_kickoff(kickoff_text),
             "match_url": row.get("match_url") or "",
         })
     return records

@@ -1,83 +1,12 @@
 [
   {
-    "mid": "4h4cPjoB",
-    "home": "Rodina Moscow",
-    "away": "Rubin Kazan",
-    "home_norm": "rodina moscow",
-    "away_norm": "rubin kazan",
-    "kickoff": "16.09. 18:30",
-    "match_url": "https://www.flashscore.com/match/football/rodina-moscow-nHLtKDh0/rubin-kazan-t482C620/?mid=4h4cPjoB"
-  },
-  {
-    "mid": "Cbs8RLAs",
-    "home": "Spartak Moscow",
-    "away": "Fakel Voronezh",
-    "home_norm": "spartak moscow",
-    "away_norm": "fakel voronezh",
-    "kickoff": "16.09. 18:30",
-    "match_url": "https://www.flashscore.com/match/football/fakel-voronezh-KK7VWueJ/spartak-moscow-IXVkvT2D/?mid=Cbs8RLAs"
-  },
-  {
-    "mid": "bZoWLHvJ",
-    "home": "Baltika",
-    "away": "Zenit",
-    "home_norm": "baltika",
-    "away_norm": "zenit",
-    "kickoff": "16.09. 20:45",
-    "match_url": "https://www.flashscore.com/match/football/baltika-2cJYOpxn/zenit-st-petersburg-vsXou9m7/?mid=bZoWLHvJ"
-  },
-  {
-    "mid": "dS0kRCGb",
-    "home": "Lokomotiv Moscow",
-    "away": "Krylya Sovetov",
-    "home_norm": "lokomotiv moscow",
-    "away_norm": "krylya sovetov",
-    "kickoff": "16.09. 20:45",
-    "match_url": "https://www.flashscore.com/match/football/krylya-sovetov-samara-SKAE94nJ/lokomotiv-moscow-Sjs63WfK/?mid=dS0kRCGb"
-  },
-  {
-    "mid": "l2csTYon",
-    "home": "Orenburg",
-    "away": "Krasnodar",
-    "home_norm": "orenburg",
-    "away_norm": "krasnodar",
-    "kickoff": "17.09. 16:15",
-    "match_url": "https://www.flashscore.com/match/football/krasnodar-dz6KeNj3/orenburg-Q19CngBE/?mid=l2csTYon"
-  },
-  {
-    "mid": "x625NUFN",
-    "home": "Akron Togliatti",
-    "away": "Akhmat Grozny",
-    "home_norm": "akron togliatti",
-    "away_norm": "akhmat grozny",
-    "kickoff": "17.09. 18:30",
-    "match_url": "https://www.flashscore.com/match/football/akhmat-grozny-bJGqkoet/akron-togliatti-6qPFRkGT/?mid=x625NUFN"
-  },
-  {
-    "mid": "hxqONwA6",
-    "home": "FK Rostov",
-    "away": "Dynamo Moscow",
-    "home_norm": "fk rostov",
-    "away_norm": "dynamo moscow",
-    "kickoff": "17.09. 18:30",
-    "match_url": "https://www.flashscore.com/match/football/dynamo-moscow-AFWA2jAQ/fk-rostov-GbznhOLi/?mid=hxqONwA6"
-  },
-  {
-    "mid": "pCuGPauf",
-    "home": "Dynamo Makhachkala",
-    "away": "CSKA Moscow",
-    "home_norm": "dynamo makhachkala",
-    "away_norm": "cska moscow",
-    "kickoff": "17.09. 20:45",
-    "match_url": "https://www.flashscore.com/match/football/cska-moscow-l0r24CuE/dynamo-makhachkala-6T0lbAmI/?mid=pCuGPauf"
-  },
-  {
     "mid": "EotNuCVi",
     "home": "FK Rostov",
     "away": "Akron Togliatti",
     "home_norm": "fk rostov",
     "away_norm": "akron togliatti",
     "kickoff": "09.10. 19:30",
+    "kickoff_ts": 1791563400,
     "match_url": "https://www.flashscore.com/match/football/akron-togliatti-6qPFRkGT/fk-rostov-GbznhOLi/?mid=EotNuCVi"
   },
   {
@@ -87,6 +16,7 @@
     "home_norm": "orenburg",
     "away_norm": "dynamo makhachkala",
     "kickoff": "10.10. 13:00",
+    "kickoff_ts": 1791626400,
     "match_url": "https://www.flashscore.com/match/football/dynamo-makhachkala-6T0lbAmI/orenburg-Q19CngBE/?mid=navVwj04"
   },
   {
@@ -96,6 +26,7 @@
     "home_norm": "fakel voronezh",
     "away_norm": "lokomotiv moscow",
     "kickoff": "10.10. 15:15",
+    "kickoff_ts": 1791634500,
     "match_url": "https://www.flashscore.com/match/football/fakel-voronezh-KK7VWueJ/lokomotiv-moscow-Sjs63WfK/?mid=IZtAjTqA"
   },
   {
@@ -105,6 +36,7 @@
     "home_norm": "krylya sovetov",
     "away_norm": "spartak moscow",
     "kickoff": "10.10. 17:30",
+    "kickoff_ts": 1791642600,
     "match_url": "https://www.flashscore.com/match/football/krylya-sovetov-samara-SKAE94nJ/spartak-moscow-IXVkvT2D/?mid=nulyI8wo"
   },
   {
@@ -114,6 +46,7 @@
     "home_norm": "krasnodar",
     "away_norm": "zenit",
     "kickoff": "10.10. 19:30",
+    "kickoff_ts": 1791649800,
     "match_url": "https://www.flashscore.com/match/football/krasnodar-dz6KeNj3/zenit-st-petersburg-vsXou9m7/?mid=fPswxUUG"
   },
   {
@@ -123,6 +56,7 @@
     "home_norm": "akhmat grozny",
     "away_norm": "baltika",
     "kickoff": "11.10. 14:00",
+    "kickoff_ts": 1791716400,
     "match_url": "https://www.flashscore.com/match/football/akhmat-grozny-bJGqkoet/baltika-2cJYOpxn/?mid=nXapz8aT"
   },
   {
@@ -132,6 +66,7 @@
     "home_norm": "cska moscow",
     "away_norm": "rodina moscow",
     "kickoff": "11.10. 16:30",
+    "kickoff_ts": 1791725400,
     "match_url": "https://www.flashscore.com/match/football/cska-moscow-l0r24CuE/rodina-moscow-nHLtKDh0/?mid=r3oGUoNj"
   },
   {
@@ -141,6 +76,7 @@
     "home_norm": "rubin kazan",
     "away_norm": "dynamo moscow",
     "kickoff": "11.10. 19:30",
+    "kickoff_ts": 1791736200,
     "match_url": "https://www.flashscore.com/match/football/dynamo-moscow-AFWA2jAQ/rubin-kazan-t482C620/?mid=A9w2hkFc"
   },
   {
@@ -150,6 +86,7 @@
     "home_norm": "krylya sovetov",
     "away_norm": "fakel voronezh",
     "kickoff": "17.10. 14:00",
+    "kickoff_ts": 1792234800,
     "match_url": "https://www.flashscore.com/match/football/fakel-voronezh-KK7VWueJ/krylya-sovetov-samara-SKAE94nJ/?mid=8nUesP6d"
   },
   {
@@ -159,6 +96,7 @@
     "home_norm": "dynamo makhachkala",
     "away_norm": "akron togliatti",
     "kickoff": "17.10. 16:30",
+    "kickoff_ts": 1792243800,
     "match_url": "https://www.flashscore.com/match/football/akron-togliatti-6qPFRkGT/dynamo-makhachkala-6T0lbAmI/?mid=0tHs5Sb3"
   },
   {
@@ -168,6 +106,7 @@
     "home_norm": "lokomotiv moscow",
     "away_norm": "krasnodar",
     "kickoff": "17.10. 19:30",
+    "kickoff_ts": 1792254600,
     "match_url": "https://www.flashscore.com/match/football/krasnodar-dz6KeNj3/lokomotiv-moscow-Sjs63WfK/?mid=E3Nc1pbS"
   },
   {
@@ -177,6 +116,7 @@
     "home_norm": "zenit",
     "away_norm": "akhmat grozny",
     "kickoff": "18.10. 14:00",
+    "kickoff_ts": 1792321200,
     "match_url": "https://www.flashscore.com/match/football/akhmat-grozny-bJGqkoet/zenit-st-petersburg-vsXou9m7/?mid=IaCyf2j2"
   },
   {
@@ -186,6 +126,7 @@
     "home_norm": "dynamo moscow",
     "away_norm": "cska moscow",
     "kickoff": "18.10. 16:15",
+    "kickoff_ts": 1792329300,
     "match_url": "https://www.flashscore.com/match/football/cska-moscow-l0r24CuE/dynamo-moscow-AFWA2jAQ/?mid=jmuIl7EM"
   },
   {
@@ -195,6 +136,7 @@
     "home_norm": "spartak moscow",
     "away_norm": "rubin kazan",
     "kickoff": "18.10. 18:30",
+    "kickoff_ts": 1792337400,
     "match_url": "https://www.flashscore.com/match/football/rubin-kazan-t482C620/spartak-moscow-IXVkvT2D/?mid=0MQmqoxp"
   },
   {
@@ -204,6 +146,7 @@
     "home_norm": "baltika",
     "away_norm": "fk rostov",
     "kickoff": "18.10. 20:45",
+    "kickoff_ts": 1792345500,
     "match_url": "https://www.flashscore.com/match/football/baltika-2cJYOpxn/fk-rostov-GbznhOLi/?mid=86Kk36TF"
   },
   {
@@ -213,6 +156,7 @@
     "home_norm": "rodina moscow",
     "away_norm": "orenburg",
     "kickoff": "19.10. 19:30",
+    "kickoff_ts": 1792427400,
     "match_url": "https://www.flashscore.com/match/football/orenburg-Q19CngBE/rodina-moscow-nHLtKDh0/?mid=AZ8TeOLk"
   },
   {
@@ -222,6 +166,7 @@
     "home_norm": "akhmat grozny",
     "away_norm": "orenburg",
     "kickoff": "23.10. 19:30",
+    "kickoff_ts": 1792773000,
     "match_url": "https://www.flashscore.com/match/football/akhmat-grozny-bJGqkoet/orenburg-Q19CngBE/?mid=lKv2cycf"
   },
   {
@@ -231,6 +176,7 @@
     "home_norm": "akron togliatti",
     "away_norm": "dynamo moscow",
     "kickoff": "24.10. 12:45",
+    "kickoff_ts": 1792835100,
     "match_url": "https://www.flashscore.com/match/football/akron-togliatti-6qPFRkGT/dynamo-moscow-AFWA2jAQ/?mid=d4Y3HdlQ"
   },
   {
@@ -240,6 +186,7 @@
     "home_norm": "fakel voronezh",
     "away_norm": "rodina moscow",
     "kickoff": "24.10. 15:00",
+    "kickoff_ts": 1792843200,
     "match_url": "https://www.flashscore.com/match/football/fakel-voronezh-KK7VWueJ/rodina-moscow-nHLtKDh0/?mid=bXMsAEt0"
   },
   {
@@ -249,6 +196,7 @@
     "home_norm": "rubin kazan",
     "away_norm": "krylya sovetov",
     "kickoff": "24.10. 17:15",
+    "kickoff_ts": 1792851300,
     "match_url": "https://www.flashscore.com/match/football/krylya-sovetov-samara-SKAE94nJ/rubin-kazan-t482C620/?mid=UctIggdJ"
   },
   {
@@ -258,6 +206,7 @@
     "home_norm": "krasnodar",
     "away_norm": "baltika",
     "kickoff": "24.10. 19:30",
+    "kickoff_ts": 1792859400,
     "match_url": "https://www.flashscore.com/match/football/baltika-2cJYOpxn/krasnodar-dz6KeNj3/?mid=GhRfacSs"
   },
   {
@@ -267,6 +216,7 @@
     "home_norm": "fk rostov",
     "away_norm": "lokomotiv moscow",
     "kickoff": "25.10. 13:45",
+    "kickoff_ts": 1792925100,
     "match_url": "https://www.flashscore.com/match/football/fk-rostov-GbznhOLi/lokomotiv-moscow-Sjs63WfK/?mid=p64NH5r9"
   },
   {
@@ -276,6 +226,7 @@
     "home_norm": "cska moscow",
     "away_norm": "spartak moscow",
     "kickoff": "25.10. 16:00",
+    "kickoff_ts": 1792933200,
     "match_url": "https://www.flashscore.com/match/football/cska-moscow-l0r24CuE/spartak-moscow-IXVkvT2D/?mid=dprAeFR6"
   },
   {
@@ -285,6 +236,7 @@
     "home_norm": "zenit",
     "away_norm": "dynamo makhachkala",
     "kickoff": "25.10. 18:30",
+    "kickoff_ts": 1792942200,
     "match_url": "https://www.flashscore.com/match/football/dynamo-makhachkala-6T0lbAmI/zenit-st-petersburg-vsXou9m7/?mid=QJOZBzCm"
   },
   {
@@ -294,6 +246,7 @@
     "home_norm": "rubin kazan",
     "away_norm": "fakel voronezh",
     "kickoff": "31.10. 15:15",
+    "kickoff_ts": 1793448900,
     "match_url": "https://www.flashscore.com/match/football/fakel-voronezh-KK7VWueJ/rubin-kazan-t482C620/?mid=tUmpNLyn"
   },
   {
@@ -303,6 +256,7 @@
     "home_norm": "dynamo moscow",
     "away_norm": "akhmat grozny",
     "kickoff": "31.10. 17:30",
+    "kickoff_ts": 1793457000,
     "match_url": "https://www.flashscore.com/match/football/akhmat-grozny-bJGqkoet/dynamo-moscow-AFWA2jAQ/?mid=6cQk8hBC"
   },
   {
@@ -312,6 +266,7 @@
     "home_norm": "rodina moscow",
     "away_norm": "krasnodar",
     "kickoff": "31.10. 19:45",
+    "kickoff_ts": 1793465100,
     "match_url": "https://www.flashscore.com/match/football/krasnodar-dz6KeNj3/rodina-moscow-nHLtKDh0/?mid=6Ngy3IjU"
   },
   {
@@ -321,6 +276,7 @@
     "home_norm": "orenburg",
     "away_norm": "cska moscow",
     "kickoff": "01.11. 13:00",
+    "kickoff_ts": 1793527200,
     "match_url": "https://www.flashscore.com/match/football/cska-moscow-l0r24CuE/orenburg-Q19CngBE/?mid=QqhL60i5"
   },
   {
@@ -330,6 +286,7 @@
     "home_norm": "dynamo makhachkala",
     "away_norm": "fk rostov",
     "kickoff": "01.11. 15:15",
+    "kickoff_ts": 1793535300,
     "match_url": "https://www.flashscore.com/match/football/dynamo-makhachkala-6T0lbAmI/fk-rostov-GbznhOLi/?mid=W2j5Arht"
   },
   {
@@ -339,6 +296,7 @@
     "home_norm": "baltika",
     "away_norm": "akron togliatti",
     "kickoff": "01.11. 17:30",
+    "kickoff_ts": 1793543400,
     "match_url": "https://www.flashscore.com/match/football/akron-togliatti-6qPFRkGT/baltika-2cJYOpxn/?mid=IJlD8MMh"
   },
   {
@@ -348,6 +306,7 @@
     "home_norm": "lokomotiv moscow",
     "away_norm": "spartak moscow",
     "kickoff": "01.11. 19:45",
+    "kickoff_ts": 1793551500,
     "match_url": "https://www.flashscore.com/match/football/lokomotiv-moscow-Sjs63WfK/spartak-moscow-IXVkvT2D/?mid=bcjT4vMH"
   },
   {
@@ -357,6 +316,7 @@
     "home_norm": "krylya sovetov",
     "away_norm": "zenit",
     "kickoff": "02.11. 18:00",
+    "kickoff_ts": 1793631600,
     "match_url": "https://www.flashscore.com/match/football/krylya-sovetov-samara-SKAE94nJ/zenit-st-petersburg-vsXou9m7/?mid=ENTc6WuP"
   },
   {
@@ -366,6 +326,7 @@
     "home_norm": "lokomotiv moscow",
     "away_norm": "rubin kazan",
     "kickoff": "06.11. 19:30",
+    "kickoff_ts": 1793982600,
     "match_url": "https://www.flashscore.com/match/football/lokomotiv-moscow-Sjs63WfK/rubin-kazan-t482C620/?mid=Q3vvCeTp"
   },
   {
@@ -375,6 +336,7 @@
     "home_norm": "fakel voronezh",
     "away_norm": "dynamo moscow",
     "kickoff": "07.11. 14:00",
+    "kickoff_ts": 1794049200,
     "match_url": "https://www.flashscore.com/match/football/dynamo-moscow-AFWA2jAQ/fakel-voronezh-KK7VWueJ/?mid=IweDD84k"
   },
   {
@@ -384,6 +346,7 @@
     "home_norm": "akhmat grozny",
     "away_norm": "rodina moscow",
     "kickoff": "07.11. 16:30",
+    "kickoff_ts": 1794058200,
     "match_url": "https://www.flashscore.com/match/football/akhmat-grozny-bJGqkoet/rodina-moscow-nHLtKDh0/?mid=vRUXXxj4"
   },
   {
@@ -393,6 +356,7 @@
     "home_norm": "krasnodar",
     "away_norm": "cska moscow",
     "kickoff": "07.11. 19:30",
+    "kickoff_ts": 1794069000,
     "match_url": "https://www.flashscore.com/match/football/cska-moscow-l0r24CuE/krasnodar-dz6KeNj3/?mid=W0RPZbLi"
   },
   {
@@ -402,6 +366,7 @@
     "home_norm": "krylya sovetov",
     "away_norm": "orenburg",
     "kickoff": "08.11. 14:00",
+    "kickoff_ts": 1794135600,
     "match_url": "https://www.flashscore.com/match/football/krylya-sovetov-samara-SKAE94nJ/orenburg-Q19CngBE/?mid=M7k0JwyB"
   },
   {
@@ -411,6 +376,7 @@
     "home_norm": "spartak moscow",
     "away_norm": "akron togliatti",
     "kickoff": "08.11. 16:15",
+    "kickoff_ts": 1794143700,
     "match_url": "https://www.flashscore.com/match/football/akron-togliatti-6qPFRkGT/spartak-moscow-IXVkvT2D/?mid=EsnhLa6b"
   },
   {
@@ -420,6 +386,7 @@
     "home_norm": "zenit",
     "away_norm": "fk rostov",
     "kickoff": "08.11. 18:30",
+    "kickoff_ts": 1794151800,
     "match_url": "https://www.flashscore.com/match/football/fk-rostov-GbznhOLi/zenit-st-petersburg-vsXou9m7/?mid=CvTuWGKG"
   },
   {
@@ -429,6 +396,7 @@
     "home_norm": "baltika",
     "away_norm": "dynamo makhachkala",
     "kickoff": "08.11. 20:45",
+    "kickoff_ts": 1794159900,
     "match_url": "https://www.flashscore.com/match/football/baltika-2cJYOpxn/dynamo-makhachkala-6T0lbAmI/?mid=UXh8HH5N"
   },
   {
@@ -438,6 +406,7 @@
     "home_norm": "fk rostov",
     "away_norm": "krylya sovetov",
     "kickoff": "20.11. 19:30",
+    "kickoff_ts": 1795192200,
     "match_url": "https://www.flashscore.com/match/football/fk-rostov-GbznhOLi/krylya-sovetov-samara-SKAE94nJ/?mid=OflFXTeL"
   },
   {
@@ -447,6 +416,7 @@
     "home_norm": "orenburg",
     "away_norm": "baltika",
     "kickoff": "21.11. 13:00",
+    "kickoff_ts": 1795255200,
     "match_url": "https://www.flashscore.com/match/football/baltika-2cJYOpxn/orenburg-Q19CngBE/?mid=fwuoS7Jr"
   },
   {
@@ -456,6 +426,7 @@
     "home_norm": "akron togliatti",
     "away_norm": "fakel voronezh",
     "kickoff": "21.11. 15:15",
+    "kickoff_ts": 1795263300,
     "match_url": "https://www.flashscore.com/match/football/akron-togliatti-6qPFRkGT/fakel-voronezh-KK7VWueJ/?mid=0xsfp7uR"
   },
   {
@@ -465,6 +436,7 @@
     "home_norm": "rubin kazan",
     "away_norm": "zenit",
     "kickoff": "21.11. 17:30",
+    "kickoff_ts": 1795271400,
     "match_url": "https://www.flashscore.com/match/football/rubin-kazan-t482C620/zenit-st-petersburg-vsXou9m7/?mid=SOrnnTAE"
   },
   {
@@ -474,6 +446,7 @@
     "home_norm": "cska moscow",
     "away_norm": "akhmat grozny",
     "kickoff": "21.11. 19:45",
+    "kickoff_ts": 1795279500,
     "match_url": "https://www.flashscore.com/match/football/akhmat-grozny-bJGqkoet/cska-moscow-l0r24CuE/?mid=SjwgQole"
   },
   {
@@ -483,6 +456,7 @@
     "home_norm": "dynamo moscow",
     "away_norm": "krasnodar",
     "kickoff": "22.11. 14:00",
+    "kickoff_ts": 1795345200,
     "match_url": "https://www.flashscore.com/match/football/dynamo-moscow-AFWA2jAQ/krasnodar-dz6KeNj3/?mid=OzbLBnZ1"
   },
   {
@@ -492,6 +466,7 @@
     "home_norm": "dynamo makhachkala",
     "away_norm": "spartak moscow",
     "kickoff": "22.11. 16:30",
+    "kickoff_ts": 1795354200,
     "match_url": "https://www.flashscore.com/match/football/dynamo-makhachkala-6T0lbAmI/spartak-moscow-IXVkvT2D/?mid=GUp7ZkR8"
   },
   {
@@ -501,6 +476,7 @@
     "home_norm": "rodina moscow",
     "away_norm": "lokomotiv moscow",
     "kickoff": "22.11. 19:00",
+    "kickoff_ts": 1795363200,
     "match_url": "https://www.flashscore.com/match/football/lokomotiv-moscow-Sjs63WfK/rodina-moscow-nHLtKDh0/?mid=0Ij0OPI7"
   },
   {
@@ -510,6 +486,7 @@
     "home_norm": "rubin kazan",
     "away_norm": "akron togliatti",
     "kickoff": "28.11. 14:00",
+    "kickoff_ts": 1795863600,
     "match_url": "https://www.flashscore.com/match/football/akron-togliatti-6qPFRkGT/rubin-kazan-t482C620/?mid=SlEDk2H6"
   },
   {
@@ -519,6 +496,7 @@
     "home_norm": "cska moscow",
     "away_norm": "zenit",
     "kickoff": "28.11. 16:30",
+    "kickoff_ts": 1795872600,
     "match_url": "https://www.flashscore.com/match/football/cska-moscow-l0r24CuE/zenit-st-petersburg-vsXou9m7/?mid=tYF5iOnf"
   },
   {
@@ -528,6 +506,7 @@
     "home_norm": "baltika",
     "away_norm": "akhmat grozny",
     "kickoff": "28.11. 19:00",
+    "kickoff_ts": 1795881600,
     "match_url": "https://www.flashscore.com/match/football/akhmat-grozny-bJGqkoet/baltika-2cJYOpxn/?mid=AVYuy32D"
   },
   {
@@ -537,6 +516,7 @@
     "home_norm": "orenburg",
     "away_norm": "rodina moscow",
     "kickoff": "29.11. 13:00",
+    "kickoff_ts": 1795946400,
     "match_url": "https://www.flashscore.com/match/football/orenburg-Q19CngBE/rodina-moscow-nHLtKDh0/?mid=xxRRb6fK"
   },
   {
@@ -546,6 +526,7 @@
     "home_norm": "fk rostov",
     "away_norm": "krasnodar",
     "kickoff": "29.11. 15:15",
+    "kickoff_ts": 1795954500,
     "match_url": "https://www.flashscore.com/match/football/fk-rostov-GbznhOLi/krasnodar-dz6KeNj3/?mid=xIzYxPX0"
   },
   {
@@ -555,6 +536,7 @@
     "home_norm": "krylya sovetov",
     "away_norm": "dynamo moscow",
     "kickoff": "29.11. 17:30",
+    "kickoff_ts": 1795962600,
     "match_url": "https://www.flashscore.com/match/football/dynamo-moscow-AFWA2jAQ/krylya-sovetov-samara-SKAE94nJ/?mid=WKXPvo3l"
   },
   {
@@ -564,6 +546,7 @@
     "home_norm": "lokomotiv moscow",
     "away_norm": "dynamo makhachkala",
     "kickoff": "29.11. 19:45",
+    "kickoff_ts": 1795970700,
     "match_url": "https://www.flashscore.com/match/football/dynamo-makhachkala-6T0lbAmI/lokomotiv-moscow-Sjs63WfK/?mid=8KHcgpIs"
   },
   {
@@ -573,6 +556,7 @@
     "home_norm": "fakel voronezh",
     "away_norm": "spartak moscow",
     "kickoff": "30.11. 19:30",
+    "kickoff_ts": 1796056200,
     "match_url": "https://www.flashscore.com/match/football/fakel-voronezh-KK7VWueJ/spartak-moscow-IXVkvT2D/?mid=zFHLmtnJ"
   },
   {
@@ -582,6 +566,7 @@
     "home_norm": "dynamo makhachkala",
     "away_norm": "krylya sovetov",
     "kickoff": "04.12. 19:30",
+    "kickoff_ts": 1796401800,
     "match_url": "https://www.flashscore.com/match/football/dynamo-makhachkala-6T0lbAmI/krylya-sovetov-samara-SKAE94nJ/?mid=biew6N1m"
   },
   {
@@ -591,6 +576,7 @@
     "home_norm": "akron togliatti",
     "away_norm": "orenburg",
     "kickoff": "05.12. 13:00",
+    "kickoff_ts": 1796464800,
     "match_url": "https://www.flashscore.com/match/football/akron-togliatti-6qPFRkGT/orenburg-Q19CngBE/?mid=dIVB7zwh"
   },
   {
@@ -600,6 +586,7 @@
     "home_norm": "rodina moscow",
     "away_norm": "cska moscow",
     "kickoff": "05.12. 15:15",
+    "kickoff_ts": 1796472900,
     "match_url": "https://www.flashscore.com/match/football/cska-moscow-l0r24CuE/rodina-moscow-nHLtKDh0/?mid=UBwQqXpo"
   },
   {
@@ -609,6 +596,7 @@
     "home_norm": "zenit",
     "away_norm": "baltika",
     "kickoff": "05.12. 17:30",
+    "kickoff_ts": 1796481000,
     "match_url": "https://www.flashscore.com/match/football/baltika-2cJYOpxn/zenit-st-petersburg-vsXou9m7/?mid=UVTJ5E74"
   },
   {
@@ -618,6 +606,7 @@
     "home_norm": "akhmat grozny",
     "away_norm": "lokomotiv moscow",
     "kickoff": "05.12. 19:45",
+    "kickoff_ts": 1796489100,
     "match_url": "https://www.flashscore.com/match/football/akhmat-grozny-bJGqkoet/lokomotiv-moscow-Sjs63WfK/?mid=OCBh2u1C"
   },
   {
@@ -627,6 +616,7 @@
     "home_norm": "fakel voronezh",
     "away_norm": "fk rostov",
     "kickoff": "06.12. 14:30",
+    "kickoff_ts": 1796556600,
     "match_url": "https://www.flashscore.com/match/football/fakel-voronezh-KK7VWueJ/fk-rostov-GbznhOLi/?mid=GnSR3hxH"
   },
   {
@@ -636,6 +626,7 @@
     "home_norm": "spartak moscow",
     "away_norm": "dynamo moscow",
     "kickoff": "06.12. 17:00",
+    "kickoff_ts": 1796565600,
     "match_url": "https://www.flashscore.com/match/football/dynamo-moscow-AFWA2jAQ/spartak-moscow-IXVkvT2D/?mid=S847BqvQ"
   },
   {
@@ -645,6 +636,7 @@
     "home_norm": "krasnodar",
     "away_norm": "rubin kazan",
     "kickoff": "06.12. 19:30",
+    "kickoff_ts": 1796574600,
     "match_url": "https://www.flashscore.com/match/football/krasnodar-dz6KeNj3/rubin-kazan-t482C620/?mid=jaDp41Wa"
   },
   {
@@ -654,6 +646,7 @@
     "home_norm": "akhmat grozny",
     "away_norm": "akron togliatti",
     "kickoff": "27.02.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/akhmat-grozny-bJGqkoet/akron-togliatti-6qPFRkGT/?mid=dr1wB9qp"
   },
   {
@@ -663,6 +656,7 @@
     "home_norm": "baltika",
     "away_norm": "rodina moscow",
     "kickoff": "27.02.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/baltika-2cJYOpxn/rodina-moscow-nHLtKDh0/?mid=hnCaIiiA"
   },
   {
@@ -672,6 +666,7 @@
     "home_norm": "dynamo makhachkala",
     "away_norm": "orenburg",
     "kickoff": "27.02.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/dynamo-makhachkala-6T0lbAmI/orenburg-Q19CngBE/?mid=nk9iKDMc"
   },
   {
@@ -681,6 +676,7 @@
     "home_norm": "dynamo moscow",
     "away_norm": "rubin kazan",
     "kickoff": "27.02.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/dynamo-moscow-AFWA2jAQ/rubin-kazan-t482C620/?mid=OCVZ1W6T"
   },
   {
@@ -690,6 +686,7 @@
     "home_norm": "fk rostov",
     "away_norm": "cska moscow",
     "kickoff": "27.02.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/cska-moscow-l0r24CuE/fk-rostov-GbznhOLi/?mid=484o9mEd"
   },
   {
@@ -699,6 +696,7 @@
     "home_norm": "krasnodar",
     "away_norm": "spartak moscow",
     "kickoff": "27.02.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/krasnodar-dz6KeNj3/spartak-moscow-IXVkvT2D/?mid=QaA7GVLM"
   },
   {
@@ -708,6 +706,7 @@
     "home_norm": "krylya sovetov",
     "away_norm": "lokomotiv moscow",
     "kickoff": "27.02.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/krylya-sovetov-samara-SKAE94nJ/lokomotiv-moscow-Sjs63WfK/?mid=KrH5dAUj"
   },
   {
@@ -717,6 +716,7 @@
     "home_norm": "zenit",
     "away_norm": "fakel voronezh",
     "kickoff": "27.02.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/fakel-voronezh-KK7VWueJ/zenit-st-petersburg-vsXou9m7/?mid=d2iXWj63"
   },
   {
@@ -726,6 +726,7 @@
     "home_norm": "akhmat grozny",
     "away_norm": "rubin kazan",
     "kickoff": "06.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/akhmat-grozny-bJGqkoet/rubin-kazan-t482C620/?mid=8dyATxH8"
   },
   {
@@ -735,6 +736,7 @@
     "home_norm": "akron togliatti",
     "away_norm": "spartak moscow",
     "kickoff": "06.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/akron-togliatti-6qPFRkGT/spartak-moscow-IXVkvT2D/?mid=ChQmMf9r"
   },
   {
@@ -744,6 +746,7 @@
     "home_norm": "dynamo makhachkala",
     "away_norm": "fakel voronezh",
     "kickoff": "06.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/dynamo-makhachkala-6T0lbAmI/fakel-voronezh-KK7VWueJ/?mid=UT4vVUzG"
   },
   {
@@ -753,6 +756,7 @@
     "home_norm": "fk rostov",
     "away_norm": "baltika",
     "kickoff": "06.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/baltika-2cJYOpxn/fk-rostov-GbznhOLi/?mid=xf8nT85S"
   },
   {
@@ -762,6 +766,7 @@
     "home_norm": "krasnodar",
     "away_norm": "krylya sovetov",
     "kickoff": "06.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/krasnodar-dz6KeNj3/krylya-sovetov-samara-SKAE94nJ/?mid=tjcQLQc2"
   },
   {
@@ -771,6 +776,7 @@
     "home_norm": "lokomotiv moscow",
     "away_norm": "cska moscow",
     "kickoff": "06.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/cska-moscow-l0r24CuE/lokomotiv-moscow-Sjs63WfK/?mid=YPgINnTk"
   },
   {
@@ -780,6 +786,7 @@
     "home_norm": "rodina moscow",
     "away_norm": "dynamo moscow",
     "kickoff": "06.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/dynamo-moscow-AFWA2jAQ/rodina-moscow-nHLtKDh0/?mid=tAZHRGoL"
   },
   {
@@ -789,6 +796,7 @@
     "home_norm": "zenit",
     "away_norm": "orenburg",
     "kickoff": "06.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/orenburg-Q19CngBE/zenit-st-petersburg-vsXou9m7/?mid=KITeKYwe"
   },
   {
@@ -798,6 +806,7 @@
     "home_norm": "akron togliatti",
     "away_norm": "dynamo makhachkala",
     "kickoff": "13.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/akron-togliatti-6qPFRkGT/dynamo-makhachkala-6T0lbAmI/?mid=hQzfx7at"
   },
   {
@@ -807,6 +816,7 @@
     "home_norm": "baltika",
     "away_norm": "krasnodar",
     "kickoff": "13.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/baltika-2cJYOpxn/krasnodar-dz6KeNj3/?mid=4StNN7pm"
   },
   {
@@ -816,6 +826,7 @@
     "home_norm": "dynamo moscow",
     "away_norm": "lokomotiv moscow",
     "kickoff": "13.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/dynamo-moscow-AFWA2jAQ/lokomotiv-moscow-Sjs63WfK/?mid=hWR3IC87"
   },
   {
@@ -825,6 +836,7 @@
     "home_norm": "fakel voronezh",
     "away_norm": "cska moscow",
     "kickoff": "13.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/cska-moscow-l0r24CuE/fakel-voronezh-KK7VWueJ/?mid=0jv2zoUh"
   },
   {
@@ -834,6 +846,7 @@
     "home_norm": "orenburg",
     "away_norm": "krylya sovetov",
     "kickoff": "13.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/krylya-sovetov-samara-SKAE94nJ/orenburg-Q19CngBE/?mid=xtuVLoFa"
   },
   {
@@ -843,6 +856,7 @@
     "home_norm": "rodina moscow",
     "away_norm": "zenit",
     "kickoff": "13.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/rodina-moscow-nHLtKDh0/zenit-st-petersburg-vsXou9m7/?mid=p6rwKPqC"
   },
   {
@@ -852,6 +866,7 @@
     "home_norm": "rubin kazan",
     "away_norm": "fk rostov",
     "kickoff": "13.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/fk-rostov-GbznhOLi/rubin-kazan-t482C620/?mid=xE0pI3EO"
   },
   {
@@ -861,6 +876,7 @@
     "home_norm": "spartak moscow",
     "away_norm": "akhmat grozny",
     "kickoff": "13.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/akhmat-grozny-bJGqkoet/spartak-moscow-IXVkvT2D/?mid=bTEktG0E"
   },
   {
@@ -870,6 +886,7 @@
     "home_norm": "cska moscow",
     "away_norm": "orenburg",
     "kickoff": "20.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/cska-moscow-l0r24CuE/orenburg-Q19CngBE/?mid=jNHsmODb"
   },
   {
@@ -879,6 +896,7 @@
     "home_norm": "dynamo makhachkala",
     "away_norm": "baltika",
     "kickoff": "20.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/baltika-2cJYOpxn/dynamo-makhachkala-6T0lbAmI/?mid=UsfKUkHD"
   },
   {
@@ -888,6 +906,7 @@
     "home_norm": "fk rostov",
     "away_norm": "rodina moscow",
     "kickoff": "20.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/fk-rostov-GbznhOLi/rodina-moscow-nHLtKDh0/?mid=tUuIW2TH"
   },
   {
@@ -897,6 +916,7 @@
     "home_norm": "krasnodar",
     "away_norm": "dynamo moscow",
     "kickoff": "20.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/dynamo-moscow-AFWA2jAQ/krasnodar-dz6KeNj3/?mid=I9JZlpqn"
   },
   {
@@ -906,6 +926,7 @@
     "home_norm": "krylya sovetov",
     "away_norm": "akhmat grozny",
     "kickoff": "20.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/akhmat-grozny-bJGqkoet/krylya-sovetov-samara-SKAE94nJ/?mid=8GsAYOb5"
   },
   {
@@ -915,6 +936,7 @@
     "home_norm": "lokomotiv moscow",
     "away_norm": "fakel voronezh",
     "kickoff": "20.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/fakel-voronezh-KK7VWueJ/lokomotiv-moscow-Sjs63WfK/?mid=SpvQUtbU"
   },
   {
@@ -924,6 +946,7 @@
     "home_norm": "rubin kazan",
     "away_norm": "spartak moscow",
     "kickoff": "20.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/rubin-kazan-t482C620/spartak-moscow-IXVkvT2D/?mid=bmLko2rB"
   },
   {
@@ -933,6 +956,7 @@
     "home_norm": "zenit",
     "away_norm": "akron togliatti",
     "kickoff": "20.03.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/akron-togliatti-6qPFRkGT/zenit-st-petersburg-vsXou9m7/?mid=4pOcqtDN"
   },
   {
@@ -942,6 +966,7 @@
     "home_norm": "akhmat grozny",
     "away_norm": "fakel voronezh",
     "kickoff": "03.04.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/akhmat-grozny-bJGqkoet/fakel-voronezh-KK7VWueJ/?mid=tSGxdJdT"
   },
   {
@@ -951,6 +976,7 @@
     "home_norm": "akron togliatti",
     "away_norm": "lokomotiv moscow",
     "kickoff": "03.04.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/akron-togliatti-6qPFRkGT/lokomotiv-moscow-Sjs63WfK/?mid=CUc2CvsA"
   },
   {
@@ -960,6 +986,7 @@
     "home_norm": "cska moscow",
     "away_norm": "krasnodar",
     "kickoff": "03.04.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/cska-moscow-l0r24CuE/krasnodar-dz6KeNj3/?mid=CA78jcKj"
   },
   {
@@ -969,6 +996,7 @@
     "home_norm": "dynamo moscow",
     "away_norm": "baltika",
     "kickoff": "03.04.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/baltika-2cJYOpxn/dynamo-moscow-AFWA2jAQ/?mid=0G9TwKzo"
   },
   {
@@ -978,6 +1006,7 @@
     "home_norm": "fk rostov",
     "away_norm": "zenit",
     "kickoff": "03.04.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/fk-rostov-GbznhOLi/zenit-st-petersburg-vsXou9m7/?mid=zm5Na1c4"
   },
   {
@@ -987,6 +1016,7 @@
     "home_norm": "orenburg",
     "away_norm": "rubin kazan",
     "kickoff": "03.04.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/orenburg-Q19CngBE/rubin-kazan-t482C620/?mid=803VcuSG"
   },
   {
@@ -996,6 +1026,7 @@
     "home_norm": "rodina moscow",
     "away_norm": "krylya sovetov",
     "kickoff": "03.04.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/krylya-sovetov-samara-SKAE94nJ/rodina-moscow-nHLtKDh0/?mid=44ffE0Cc"
   },
   {
@@ -1005,6 +1036,87 @@
     "home_norm": "spartak moscow",
     "away_norm": "dynamo makhachkala",
     "kickoff": "03.04.2027",
+    "kickoff_ts": null,
     "match_url": "https://www.flashscore.com/match/football/dynamo-makhachkala-6T0lbAmI/spartak-moscow-IXVkvT2D/?mid=SM1F1NSi"
+  },
+  {
+    "mid": "Ec6N4mu1",
+    "home": "Akhmat Grozny",
+    "away": "Dynamo Moscow",
+    "home_norm": "akhmat grozny",
+    "away_norm": "dynamo moscow",
+    "kickoff": "10.04.2027",
+    "kickoff_ts": null,
+    "match_url": "https://www.flashscore.com/match/football/akhmat-grozny-bJGqkoet/dynamo-moscow-AFWA2jAQ/?mid=Ec6N4mu1"
+  },
+  {
+    "mid": "dvRkjlQ7",
+    "home": "Baltika",
+    "away": "CSKA Moscow",
+    "home_norm": "baltika",
+    "away_norm": "cska moscow",
+    "kickoff": "10.04.2027",
+    "kickoff_ts": null,
+    "match_url": "https://www.flashscore.com/match/football/baltika-2cJYOpxn/cska-moscow-l0r24CuE/?mid=dvRkjlQ7"
+  },
+  {
+    "mid": "lENshAee",
+    "home": "Dynamo Makhachkala",
+    "away": "Rubin Kazan",
+    "home_norm": "dynamo makhachkala",
+    "away_norm": "rubin kazan",
+    "kickoff": "10.04.2027",
+    "kickoff_ts": null,
+    "match_url": "https://www.flashscore.com/match/football/dynamo-makhachkala-6T0lbAmI/rubin-kazan-t482C620/?mid=lENshAee"
+  },
+  {
+    "mid": "nB4V2R9D",
+    "home": "Fakel Voronezh",
+    "away": "Akron Togliatti",
+    "home_norm": "fakel voronezh",
+    "away_norm": "akron togliatti",
+    "kickoff": "10.04.2027",
+    "kickoff_ts": null,
+    "match_url": "https://www.flashscore.com/match/football/akron-togliatti-6qPFRkGT/fakel-voronezh-KK7VWueJ/?mid=nB4V2R9D"
+  },
+  {
+    "mid": "6X2F69Al",
+    "home": "Krasnodar",
+    "away": "Rodina Moscow",
+    "home_norm": "krasnodar",
+    "away_norm": "rodina moscow",
+    "kickoff": "10.04.2027",
+    "kickoff_ts": null,
+    "match_url": "https://www.flashscore.com/match/football/krasnodar-dz6KeNj3/rodina-moscow-nHLtKDh0/?mid=6X2F69Al"
+  },
+  {
+    "mid": "G0PZgWQr",
+    "home": "Krylya Sovetov",
+    "away": "FK Rostov",
+    "home_norm": "krylya sovetov",
+    "away_norm": "fk rostov",
+    "kickoff": "10.04.2027",
+    "kickoff_ts": null,
+    "match_url": "https://www.flashscore.com/match/football/fk-rostov-GbznhOLi/krylya-sovetov-samara-SKAE94nJ/?mid=G0PZgWQr"
+  },
+  {
+    "mid": "dbHqCVnR",
+    "home": "Lokomotiv Moscow",
+    "away": "Zenit",
+    "home_norm": "lokomotiv moscow",
+    "away_norm": "zenit",
+    "kickoff": "10.04.2027",
+    "kickoff_ts": null,
+    "match_url": "https://www.flashscore.com/match/football/lokomotiv-moscow-Sjs63WfK/zenit-st-petersburg-vsXou9m7/?mid=dbHqCVnR"
+  },
+  {
+    "mid": "OpJyEiIE",
+    "home": "Orenburg",
+    "away": "Spartak Moscow",
+    "home_norm": "orenburg",
+    "away_norm": "spartak moscow",
+    "kickoff": "10.04.2027",
+    "kickoff_ts": null,
+    "match_url": "https://www.flashscore.com/match/football/orenburg-Q19CngBE/spartak-moscow-IXVkvT2D/?mid=OpJyEiIE"
   }
 ]
