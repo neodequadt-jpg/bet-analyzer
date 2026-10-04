@@ -14,13 +14,39 @@ SYSTEM_PROMPT = (
 )
 
 
+def _format_injuries(injuries):
+    """Return a list of prompt lines for missing players, or [] if empty.
+
+    Expected shape: {"home": [{"name":..., "reason":...}, ...], "away": [...]}
+    Unknown shape is ignored (returns []).
+    """
+    if not isinstance(injuries, dict):
+        return []
+    out = []
+    home = injuries.get("home") or []
+    away = injuries.get("away") or []
+    if not home and not away:
+        return []
+    for side_key, label in (("home", "Home"), ("away", "Away")):
+        players = injuries.get(side_key) or []
+        for p in players:
+            if not isinstance(p, dict):
+                continue
+            name = str(p.get("name", "")).strip()
+            reason = str(p.get("reason", "unknown")).strip() or "unknown"
+            if not name:
+                continue
+            out.append("  - " + label + ": " + name + " (" + reason + ")")
+    return out
+
+
 class ValueBetAnalyst:
     def __init__(self, api_key=None, model=DEFAULT_MODEL, timeout=90):
         self.api_key = api_key or os.environ.get("OMNI_KEY") or "sk-84454d30f22bfcb1-5d2256-72fbd6b3"
         self.model = model
         self.timeout = timeout
 
-    def build_user_prompt(self, event, consensus, value_bets):
+    def build_user_prompt(self, event, consensus, value_bets, injuries=None):
         lines = []
         lines.append("Match: " + str(event.get("home")) + " vs " + str(event.get("away")) + " (" + str(event.get("league", "?")) + ")")
         lines.append("")
@@ -36,13 +62,19 @@ class ValueBetAnalyst:
         else:
             lines.append("No value-bets found. Market is efficient.")
         lines.append("")
+        inj_lines = _format_injuries(injuries) if injuries else []
+        if inj_lines:
+            lines.append("")
+            lines.append("Missing players (Flashscore, best-effort):")
+            lines.extend(inj_lines)
+        lines.append("")
         lines.append("Answer in Russian, analyst tone, no markdown tables.")
         lines.append("Structure: 1) Should you bet? 2-3 sentences. 2) Stake size (Kelly %). 3) Risks.")
         lines.append("Max 4 paragraphs. No guarantees.")
         return "\n".join(lines)
 
-    def analyze(self, event, consensus, value_bets):
-        prompt = self.build_user_prompt(event, consensus, value_bets)
+    def analyze(self, event, consensus, value_bets, injuries=None):
+        prompt = self.build_user_prompt(event, consensus, value_bets, injuries=injuries)
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = "Bearer " + self.api_key
