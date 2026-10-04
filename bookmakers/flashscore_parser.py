@@ -7,7 +7,6 @@ import json
 import logging
 from pathlib import Path
 
-from playwright.async_api import async_playwright, TimeoutError as PwTimeout
 
 log = logging.getLogger("flashscore")
 logging.basicConfig(
@@ -18,6 +17,16 @@ logging.basicConfig(
 FLASHSCORE_BASE = "https://www.flashscore.com"
 CACHE_DIR = Path("data/cache/flashscore")
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+
+def _load_playwright():
+    """Lazy import Playwright. Pure HTML parsing does not need it."""
+    from playwright.async_api import (
+        async_playwright,
+        TimeoutError as PwTimeout,
+    )
+    return async_playwright, PwTimeout
 
 
 class FlashscoreParser:
@@ -40,6 +49,7 @@ class FlashscoreParser:
 
     async def probe_homepage(self) -> dict:
         """Проверка: открывается ли Flashscore вообще."""
+        async_playwright, PwTimeout = _load_playwright()
         async with async_playwright() as pw:
             launch_kwargs = {"headless": self.headless}
             if self.proxy:
@@ -84,6 +94,7 @@ RPL_FIXTURES = f"{RPL_BASE}/fixtures/"
 
 class FlashscoreLeagueProbe(FlashscoreParser):
     async def dump(self, url: str, out_path: str) -> dict:
+        async_playwright, PwTimeout = _load_playwright()
         async with async_playwright() as pw:
             launch_kwargs = {"headless": self.headless}
             if self.proxy:
