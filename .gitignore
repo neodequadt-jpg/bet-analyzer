@@ -40,3 +40,25 @@ secrets.yaml
 htmlcov/
 data/backtest/signals/
 data/state.json
+
+# Backup files from patches
+*.bak
+*.bak.*
+*.bak2.*
+
+# Auto-generated manual events (new ones only)
+data/manual/auto_*.json
+
+# Local scratch
+*.log
+
+# Backup files from patches
+*.bak
+*.bak.*
+*.bak2.*
+
+# Auto-generated manual events (new ones only)
+data/manual/auto_*.json
+
+# Local scratch
+*.log
