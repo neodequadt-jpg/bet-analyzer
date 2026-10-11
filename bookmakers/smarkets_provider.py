@@ -80,18 +80,16 @@ def _cache_save(events):
 
 
 def fetch_events(hours=72, max_events=30, deadline_sec=25):
-    # Cache hit?
-    cached = _cache_load()
-    if cached is not None:
-        now = time.time()
-        lo = now - 3600
-        hi = now + hours * 3600
-        return [e for e in cached if lo <= e["start_ts"] <= hi][:max_events]
-
-    session = get_http_session()
     now = time.time()
     lo = now - 3600
     hi = now + hours * 3600
+
+    # Cache hit?
+    cached = _cache_load()
+    if cached is not None:
+        return [e for e in cached if lo <= e["start_ts"] <= hi][:max_events]
+
+    session = get_http_session()
     deadline = time.monotonic() + deadline_sec
 
     r = _get(session, f"{BASE}/events/?type=football_match&state=upcoming&limit=50",
