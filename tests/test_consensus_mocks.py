@@ -9,7 +9,12 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from bookmakers.parser import OddsEvent
-from market.consensus import build_consensus, evaluate_event
+from market.consensus import (
+    build_consensus,
+    evaluate_event,
+    consensus_per_bookmaker,
+    ConsensusOutcome,
+)
 
 
 def make_event(bk, h, d, a, home="Зенит", away="Спартак"):
@@ -98,6 +103,55 @@ class TestEvaluateEvent(unittest.TestCase):
                 info["bookmaker"], "Smarkets",
                 f"exchange leaked into best_odds[{outcome}]",
             )
+
+
+class TestConsensusPerBookmaker(unittest.TestCase):
+    def test_consensus_per_bookmaker_basic(self):
+        events = [
+            make_event("Фонбет", 2.0, 4.0, 4.0),
+            make_event("Винлайн", 2.0, 4.0, 4.0),
+            make_event("Лига Ставок", 2.0, 4.0, 4.0),
+        ]
+        result = consensus_per_bookmaker(events)
+        self.assertEqual(set(result.keys()), {"Фонбет", "Винлайн", "Лига Ставок"})
+        expected = {
+            "home": (0.5, 2.0),
+            "draw": (0.25, 4.0),
+            "away": (0.25, 4.0),
+        }
+        for bk_name, outcomes in result.items():
+            self.assertEqual(set(outcomes.keys()), {"home", "draw", "away"})
+            for outcome, obj in outcomes.items():
+                self.assertIsInstance(obj, ConsensusOutcome)
+                self.assertEqual(obj.outcome, outcome)
+                exp_prob, exp_odds = expected[outcome]
+                self.assertAlmostEqual(obj.consensus_prob, exp_prob, places=4)
+                self.assertAlmostEqual(obj.consensus_odds, exp_odds, places=2)
+                self.assertEqual(obj.sources, 2)
+                self.assertEqual(len(obj.bookmaker_odds), 2)
+
+    def test_consensus_per_bookmaker_skip_single_bk(self):
+        events = [make_event("Фонбет", 2.0, 4.0, 4.0)]
+        result = consensus_per_bookmaker(events)
+        self.assertEqual(result, {})
+
+    def test_consensus_outcome_fields(self):
+        test_odds = {"Фонбет": 2.0, "Винлайн": 2.1}
+        obj = ConsensusOutcome(
+            outcome="home",
+            consensus_prob=0.5,
+            consensus_odds=2.0,
+            confidence=0.85,
+            sources=2,
+            bookmaker_odds=test_odds,
+        )
+        self.assertEqual(obj.outcome, "home")
+        self.assertEqual(obj.consensus_prob, 0.5)
+        self.assertEqual(obj.consensus_odds, 2.0)
+        self.assertEqual(obj.confidence, 0.85)
+        self.assertEqual(obj.sources, 2)
+        self.assertEqual(obj.bookmaker_odds, test_odds)
+
 
 
 if __name__ == "__main__":
