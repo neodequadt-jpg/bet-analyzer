@@ -17,4 +17,4 @@ if [ ! -x "$VENV_PY" ]; then
 fi
 
 echo "[run_tests] using $VENV_PY"
-PYTHONPATH=. "$VENV_PY" -m pytest tests/ -v
+PYTHONPATH=. "$VENV_PY" -m pytest tests/ -v "$@"

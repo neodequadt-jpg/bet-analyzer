@@ -9,6 +9,8 @@ import time
 import unittest
 from unittest import mock
 
+import pytest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import tg_bot
@@ -414,11 +416,13 @@ class TestManualRefresh(unittest.TestCase):
 
 
 class TestPipelineNoFutureFilter(unittest.TestCase):
+    @pytest.mark.integration
     def test_pipeline_returns_matches(self):
         import tg_bot
         rs = tg_bot.build_pipeline()
         self.assertGreater(len(rs), 0, "build_pipeline returns 0 matches - future filter too strict")
 
+    @pytest.mark.integration
     def test_pipeline_has_value_bets(self):
         import tg_bot
         rs = tg_bot.build_pipeline()
