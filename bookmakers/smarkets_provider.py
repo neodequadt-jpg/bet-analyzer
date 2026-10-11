@@ -124,7 +124,7 @@ def fetch_events(hours=72, max_events=30, deadline_sec=25):
             continue
         home, _, away = name.partition(" vs ")
 
-        r2 = _get(session, f"{BASE}/events/{ev_id}/markets/", timeout=6, retries=1)
+        r2 = _get(session, f"{BASE}/events/{ev_id}/markets/", timeout=15, retries=3)
         if time.monotonic() > deadline:
             break
         markets = (r2.json() if r2 else {}).get("markets", []) if r2 else []
@@ -137,7 +137,7 @@ def fetch_events(hours=72, max_events=30, deadline_sec=25):
         if not market_id:
             continue
 
-        r3 = _get(session, f"{BASE}/markets/{market_id}/contracts/", timeout=6, retries=1)
+        r3 = _get(session, f"{BASE}/markets/{market_id}/contracts/", timeout=15, retries=3)
         if time.monotonic() > deadline:
             break
         contracts = (r3.json() if r3 else {}).get("contracts", []) if r3 else []
@@ -149,7 +149,7 @@ def fetch_events(hours=72, max_events=30, deadline_sec=25):
         if not all(k in cid_by_side for k in ("HOME", "DRAW", "AWAY")):
             continue
 
-        r4 = _get(session, f"{BASE}/markets/{market_id}/quotes/", timeout=6, retries=1)
+        r4 = _get(session, f"{BASE}/markets/{market_id}/quotes/", timeout=15, retries=3)
         quotes = (r4.json() if r4 else {}) or {}
 
         def best_back(cid):

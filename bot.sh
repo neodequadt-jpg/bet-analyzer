@@ -21,10 +21,11 @@ if [[ -f .env.bot ]]; then
 fi
 
 # Proxy settings
-export http_proxy=http://127.0.0.1:18080
-export https_proxy=http://127.0.0.1:18080
+# Telegram via WireGuard wg0 (split-tunnel)
+unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
 export no_proxy=127.0.0.1,localhost
 export NO_PROXY=127.0.0.1,localhost
+export TG_API_BASE=https://api.telegram.org
 
 # Validate BOT_TOKEN
 if [[ -z "${BOT_TOKEN:-}" ]]; then
@@ -42,4 +43,5 @@ else
 fi
 
 echo "[bot.sh] starting telegram bot (python=$PYTHON)"
+export PYTHONUNBUFFERED=1
 exec "$PYTHON" tg_bot.py

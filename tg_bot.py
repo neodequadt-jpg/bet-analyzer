@@ -73,7 +73,7 @@ TG_ADMIN_IDS = _parse_admin_ids(os.environ.get("TG_ADMIN_ID", ""))
 TG_ADMIN_ID = next(iter(TG_ADMIN_IDS)) if len(TG_ADMIN_IDS) == 1 else None
 
 START_TIME = time.time()
-HTTP_TIMEOUT = 8
+HTTP_TIMEOUT = 25
 MAX_MESSAGE_LEN = 4000
 
 # Resilience: long-poll getUpdates(timeout=25) dies on a flapping proxy,
