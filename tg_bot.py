@@ -200,6 +200,8 @@ def _build_system_prompt(chat_id, base_prompt: str) -> str:
 
 # argv for /live set by handle()/_handle_callback() before dispatch (see D4)
 _LAST_LIVE_ARGV: list = []
+_LAST_PLAN_BONUS: str = ""
+_LAST_PLAN_SIGNALS: list = []
 _LAST_CHAT_ID = None
 
 WELCOME_TEXT = (
@@ -257,6 +259,11 @@ def get_main_keyboard(chat_id) -> dict:
             ],
             [
                 {"text": "\U0001F381 Bonuses",   "callback_data": "bonuses"},
+                {"text": "\U0001F4CB Plan",      "callback_data": "plan_help"},
+                {"text": "\U0001F4B0 Lay calc",  "callback_data": "lay_help"},
+            ],
+            [
+                {"text": "\U0001F381 Bonuses",   "callback_data": "bonuses"},
                 {"text": "\U0001F4B0 Lay calc",  "callback_data": "lay_help"},
                 {"text": "\U0001F6E1\uFE0F BMs", "callback_data": "bookmakers"},
             ],
@@ -282,6 +289,8 @@ def get_welcome_text(chat_id) -> str:
         "/bonuses \u2014 \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0435 \u0444\u0440\u0438\u0431\u0435\u0442\u044b \u0438 \u0431\u043e\u043d\u0443\u0441\u044b \u0411\u041a\n",
         "/lay &lt;freebet&gt; &lt;back&gt; &lt;lay&gt; \u2014 \u043a\u0430\u043b\u044c\u043a\u0443\u043b\u044f\u0442\u043e\u0440 matched betting\n",
         "/bookmakers \u2014 \u0440\u0435\u0439\u0442\u0438\u043d\u0433 \u043d\u0430\u0434\u0451\u0436\u043d\u043e\u0441\u0442\u0438 \u0411\u041a\n",
+        "/plan \u2014 one-tap \u043f\u043b\u0430\u043d matched betting\n",
+        "/plan_go &lt;bk&gt; &lt;N&gt; &lt;lay&gt; \u2014 \u0444\u0438\u043d\u0430\u043b\u044c\u043d\u044b\u0439 \u0431\u043b\u043e\u043a\n",
         "/whoami \u2014 my chat_id\n",
         "/reset \u2014 clear AI history\n",
         "/prompt \u2014 show system prompt\n",
@@ -1816,6 +1825,52 @@ def cmd_bookmakers(chat_id) -> str:
     return "\n".join(lines)
 
 
+def cmd_plan(text: str) -> str:
+    """One-tap matched betting. /plan <bookmaker> | /plan_go <bk> <idx> <lay>"""
+    try:
+        from scoring.bonus_tracker import list_active
+        from scoring.plan_builder import list_candidates, format_candidates
+    except Exception as e:
+        return f"\U0001F4CB <b>Plan</b>\n\n\u041e\u0448\u0438\u0431\u043a\u0430: {e}"
+    args = (text or "").split()[1:]
+    items = list_active()
+    if not args:
+        if not items:
+            return "\U0001F4CB <b>Plan</b>\n\n\u041d\u0435\u0442 \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0445 \u0431\u043e\u043d\u0443\u0441\u043e\u0432."
+        lines = ["\U0001F4CB <b>Plan</b> \u2014 \u0432\u044b\u0431\u0435\u0440\u0438 \u0431\u043e\u043d\u0443\u0441:", ""]
+        for b in items:
+            lines.append(f"  /plan {b.bookmaker} \u2014 {b.amount}\u20bd, \u043a\u044d\u0444 {b.min_odds}\u2013{b.max_odds}")
+        return "\n".join(lines)
+    bonus = next((b for b in items if b.bookmaker == args[0]), None)
+    if bonus is None:
+        return f"\U0001F4CB \u0411\u043e\u043d\u0443\u0441 <b>{args[0]}</b> \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d."
+    return format_candidates(bonus, list_candidates(bonus))
+
+
+def cmd_plan_go(text: str) -> str:
+    """Final plan: /plan_go <bonus> <idx> <lay_odds>"""
+    try:
+        from scoring.bonus_tracker import list_active
+        from scoring.plan_builder import list_candidates, build_plan, format_plan
+    except Exception as e:
+        return f"\U0001F4CB <b>Plan</b>\n\n\u041e\u0448\u0438\u0431\u043a\u0430: {e}"
+    parts = (text or "").split()[1:]
+    if len(parts) < 3:
+        return "\U0001F4CB \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435: /plan_go &lt;bonus&gt; &lt;N&gt; &lt;lay_odds&gt;"
+    try:
+        idx = int(parts[1]); lay = float(parts[2])
+    except ValueError:
+        return "\U0001F4CB \u041e\u0448\u0438\u0431\u043a\u0430: N \u0438 lay_odds \u0434\u043e\u043b\u0436\u043d\u044b \u0431\u044b\u0442\u044c \u0447\u0438\u0441\u043b\u0430\u043c\u0438."
+    items = list_active()
+    bonus = next((b for b in items if b.bookmaker == parts[0]), None)
+    if bonus is None:
+        return f"\U0001F4CB \u0411\u043e\u043d\u0443\u0441 <b>{parts[0]}</b> \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d."
+    cands = list_candidates(bonus)
+    if idx < 1 or idx > len(cands):
+        return f"\U0001F4CB N \u0432\u043d\u0435 \u0434\u0438\u0430\u043f\u0430\u0437\u043e\u043d\u0430 1..{len(cands)}"
+    return format_plan(build_plan(bonus, cands[idx - 1], lay_odds=lay))
+
+
 def dispatch(command: str) -> str:
     if command in ("/start", "/help"):
         return WELCOME_TEXT
@@ -1841,6 +1896,10 @@ def dispatch(command: str) -> str:
         return cmd_lay(command)
     if command == "/bookmakers":
         return cmd_bookmakers(_LAST_CHAT_ID)
+    if command == "/plan" or command.startswith("/plan "):
+        return cmd_plan(command)
+    if command == "/plan_go" or command.startswith("/plan_go "):
+        return cmd_plan_go(command)
     if command == "/live":
         # argv was stored in _LAST_LIVE_ARGV by handle()/_handle_callback();
         # empty list -> cmd_live falls back to defaults (tt, 1h)
@@ -1886,6 +1945,10 @@ def _handle_callback(cb):
         return
     if data == "bookmakers":
         send_message(chat_id, cmd_bookmakers(chat_id),
+                     reply_markup=get_main_keyboard(chat_id))
+        return
+    if data == "plan_help":
+        send_message(chat_id, cmd_plan("/plan"),
                      reply_markup=get_main_keyboard(chat_id))
         return
 
