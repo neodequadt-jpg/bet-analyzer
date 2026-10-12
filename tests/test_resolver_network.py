@@ -26,7 +26,7 @@ class TestGetSession(unittest.TestCase):
 
     def test_session_with_http_proxy(self):
         """_get_session should set both http and https proxies when HTTP_PROXY is set."""
-        with patch.dict(os.environ, {'HTTP_PROXY': 'http://proxy.example.com:8080'}):
+        with patch.dict(os.environ, {'HTTP_PROXY': 'http://proxy.example.com:8080'}, clear=True):
             with patch('scoring.resolver.requests.Session') as mock_session_class:
                 mock_session = MagicMock()
                 mock_session_class.return_value = mock_session
