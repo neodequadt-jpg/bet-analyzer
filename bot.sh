@@ -36,8 +36,8 @@ fi
 # Detect python
 if [[ -n "${PYTHON:-}" ]]; then
   :
-elif [[ -x /home/jail/AVITO-PRINTER-V2/.venv/bin/python ]]; then
-  PYTHON=/home/jail/AVITO-PRINTER-V2/.venv/bin/python
+elif [[ -x "$SCRIPT_DIR/.venv/bin/python" ]]; then
+  PYTHON="$SCRIPT_DIR/.venv/bin/python"
 else
   PYTHON=python3
 fi
