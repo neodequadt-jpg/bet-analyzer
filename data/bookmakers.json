@@ -1,0 +1,106 @@
+{
+  "Winline": {
+    "license": "RU",
+    "payout_days": 1,
+    "issues": [],
+    "notes": "Легальная РФ. ЦУПИС. Быстрые выплаты."
+  },
+  "PARI": {
+    "license": "RU",
+    "payout_days": 1,
+    "issues": [],
+    "notes": "Легальная РФ. ЦУПИС."
+  },
+  "Fonbet": {
+    "license": "RU",
+    "payout_days": 2,
+    "issues": [],
+    "notes": "Легальная РФ. ЦУПИС."
+  },
+  "Liga Stavok": {
+    "license": "RU",
+    "payout_days": 2,
+    "issues": [],
+    "notes": "Легальная РФ. ЦУПИС."
+  },
+  "BetBoom": {
+    "license": "RU",
+    "payout_days": 3,
+    "issues": [],
+    "notes": "Легальная РФ. ЦУПИС."
+  },
+  "Marathonbet": {
+    "license": "RU",
+    "payout_days": 2,
+    "issues": [],
+    "notes": "Легальная РФ. ЦУПИС."
+  },
+  "Zenit": {
+    "license": "RU",
+    "payout_days": 3,
+    "issues": [],
+    "notes": "Легальная РФ. ЦУПИС."
+  },
+  "1xBet": {
+    "license": "Curacao",
+    "payout_days": 7,
+    "issues": [
+      "reports of payout delays",
+      "account verification issues",
+      "restricted winning accounts"
+    ],
+    "notes": "Офшор. Крупнейший по обороту, но частые жалобы на выплаты."
+  },
+  "Melbet": {
+    "license": "Curacao",
+    "payout_days": 5,
+    "issues": [
+      "reports of payout delays"
+    ],
+    "notes": "Офшор. Сателлит 1xBet, умеренные задержки."
+  },
+  "Mostbet": {
+    "license": "Curacao",
+    "payout_days": 7,
+    "issues": [
+      "reports of payout delays",
+      "account verification issues"
+    ],
+    "notes": "Офшор. Частые жалобы на верификацию."
+  },
+  "Leon": {
+    "license": "Anjouan",
+    "payout_days": 5,
+    "issues": [
+      "reports of payout delays"
+    ],
+    "notes": "Офшор. Смена юрисдикции на Anjouan (Comoros)."
+  },
+  "BetCity": {
+    "license": "Anjouan",
+    "payout_days": 7,
+    "issues": [
+      "reports of payout delays",
+      "account verification issues"
+    ],
+    "notes": "Офшор. Ранее SBOBET, низкая репутация."
+  },
+  "Cosmobet": {
+    "license": "Curacao",
+    "payout_days": 10,
+    "issues": [
+      "reports of payout delays",
+      "account verification issues",
+      "restricted winning accounts"
+    ],
+    "notes": "Офшор. Новый БК, много жалоб."
+  },
+  "GGBet": {
+    "license": "Curacao",
+    "payout_days": 5,
+    "issues": [
+      "reports of payout delays"
+    ],
+    "notes": "Офшор. Киберспорт-ориентированный."
+  }
+}
