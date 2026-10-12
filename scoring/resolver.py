@@ -45,9 +45,8 @@ def _normalize(name: str) -> str:
 
 def _get_session():
     s = requests.Session()
-    proxy = os.getenv("HTTPS_PROXY") or os.getenv("HTTP_PROXY")
-    if proxy:
-        s.proxies = {"http": proxy, "https": proxy}
+    # env may have a dead http_proxy (see ARTEM-PRETHEORY E1); ignore it.
+    s.trust_env = False
     return s
 
 
@@ -78,6 +77,36 @@ def _determine_result(event: dict) -> Optional[str]:
     if sh > sa:
         return "home"
     if sh < sa:
+        return "away"
+    return "draw"
+
+
+FOOTBOLNO_LEAGUES = {
+    "RPL": 235,
+    "UEFA Nations League A": 5,
+    "UEFA Nations League B": 5,
+    "UEFA Nations League C": 5,
+}
+
+_footbolno_provider = None
+
+
+def _get_footbolno():
+    """Lazy singleton FootbolnoProvider (requests.Session trust_env=False inside)."""
+    global _footbolno_provider
+    if _footbolno_provider is None:
+        from providers.footbolno import FootbolnoProvider
+        _footbolno_provider = FootbolnoProvider(cache_dir="data/footbolno", ttl=6 * 3600)
+    return _footbolno_provider
+
+
+def _determine_result_from_match(m) -> Optional[str]:
+    """Same semantics as _determine_result but for providers.footbolno.Match."""
+    if m.home_goals is None or m.away_goals is None:
+        return None
+    if m.home_goals > m.away_goals:
+        return "home"
+    if m.home_goals < m.away_goals:
         return "away"
     return "draw"
 
@@ -139,27 +168,46 @@ def resolve_all() -> dict:
 
         dt = datetime.fromtimestamp(kick_ts, tz=MSK)
         date_str = dt.strftime("%Y-%m-%d")
-        if date_str not in cache:
-            cache[date_str] = _fetch_events_for_date(session, date_str)
-            time.sleep(0.4)
 
-        events = cache[date_str]
-        # event format: "Словакия vs Молдова"
         ev_str = sig.get("event", "")
         if " vs " not in ev_str:
             stats["skipped"] += 1
             continue
-        home_ru, away_ru = ev_str.split(" vs ", 1)
+        home_ru, away_ru = [x.strip() for x in ev_str.split(" vs ", 1)]
 
-        match = _find_match(events, home_ru.strip(), away_ru.strip())
-        if not match:
-            stats["skipped"] += 1
-            continue
+        league = sig.get("league", "")
+        result = None
+        score_str = None
 
-        result = _determine_result(match)
-        if result is None:
-            stats["pending"] += 1
-            continue
+        # Route: footbolno covers RPL + UEFA Nations League (EVR-0015/0017)
+        if league in FOOTBOLNO_LEAGUES:
+            fb = _get_footbolno()
+            fb_match = fb.find_match(home_ru, away_ru, date_str, FOOTBOLNO_LEAGUES[league])
+            if fb_match is None:
+                stats["skipped"] += 1
+                continue
+            if fb_match.status != "finished":
+                stats["pending"] += 1
+                continue
+            result = _determine_result_from_match(fb_match)
+            if result is None:
+                stats["pending"] += 1
+                continue
+            score_str = f"{fb_match.home_goals}-{fb_match.away_goals}"
+        else:
+            if date_str not in cache:
+                cache[date_str] = _fetch_events_for_date(session, date_str)
+                time.sleep(0.4)
+            events = cache[date_str]
+            match = _find_match(events, home_ru, away_ru)
+            if not match:
+                stats["skipped"] += 1
+                continue
+            result = _determine_result(match)
+            if result is None:
+                stats["pending"] += 1
+                continue
+            score_str = f"{match.get('intHomeScore')}-{match.get('intAwayScore')}"
 
         outcome = (sig.get("outcome") or "").lower()
         won = (outcome == result)
@@ -167,12 +215,12 @@ def resolve_all() -> dict:
         stats["won" if won else "lost"] += 1
 
         # Save result
-        rid = f"{sig['_src'].replace('.json','')}__{home_ru.strip()}__{away_ru.strip()}__{outcome}"
+        rid = f"{sig['_src'].replace('.json','')}__{home_ru}__{away_ru}__{outcome}"
         rid = rid.replace("/", "_").replace(" ", "_")
         out = {
             **sig,
             "_result": result,
-            "_score": f"{match.get('intHomeScore')}-{match.get('intAwayScore')}",
+            "_score": score_str,
             "_won": won,
             "_resolved_at": datetime.now(MSK).isoformat(),
         }

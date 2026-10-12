@@ -11,69 +11,50 @@ from scoring.resolver import _get_session, _fetch_events_for_date, THESPORTSDB
 
 
 class TestGetSession(unittest.TestCase):
+    """_get_session MUST ignore env proxies (ARTEM-PRETHEORY E1)."""
+
     def test_session_without_proxy(self):
-        """_get_session should create a Session without touching .proxies when no env."""
         class FakeSession:
             def __init__(self):
                 self.proxies = {}
 
         with patch.dict(os.environ, clear=True):
-            with patch('scoring.resolver.requests.Session', FakeSession) as mock_cls:
+            with patch('scoring.resolver.requests.Session', FakeSession):
                 session = _get_session()
-                # proxies remains default empty dict, code did not assign
                 self.assertEqual(session.proxies, {})
                 self.assertIsInstance(session, FakeSession)
 
-    def test_session_with_http_proxy(self):
-        """_get_session should set both http and https proxies when HTTP_PROXY is set."""
+    def test_session_ignores_http_proxy(self):
+        """HTTP_PROXY in env MUST NOT be picked up."""
         with patch.dict(os.environ, {'HTTP_PROXY': 'http://proxy.example.com:8080'}, clear=True):
             with patch('scoring.resolver.requests.Session') as mock_session_class:
                 mock_session = MagicMock()
                 mock_session_class.return_value = mock_session
-                
-                session = _get_session()
-                
+                _get_session()
                 mock_session_class.assert_called_once()
-                self.assertEqual(mock_session.proxies, {
-                    'http': 'http://proxy.example.com:8080',
-                    'https': 'http://proxy.example.com:8080'
-                })
-                self.assertEqual(session, mock_session)
+                # proxies not assigned by our code — MagicMock default attr is not dict,
+                # so assert trust_env False and that .proxies was never set
+                self.assertFalse(mock_session.trust_env)
 
-    def test_session_with_https_proxy(self):
-        """_get_session should prefer HTTPS_PROXY over HTTP_PROXY."""
+    def test_session_ignores_https_proxy(self):
         with patch.dict(os.environ, {
             'HTTPS_PROXY': 'https://secureproxy.example.com:8443',
-            'HTTP_PROXY': 'http://proxy.example.com:8080'
-        }):
+            'HTTP_PROXY': 'http://proxy.example.com:8080',
+        }, clear=True):
             with patch('scoring.resolver.requests.Session') as mock_session_class:
                 mock_session = MagicMock()
                 mock_session_class.return_value = mock_session
-                
-                session = _get_session()
-                
-                mock_session_class.assert_called_once()
-                self.assertEqual(mock_session.proxies, {
-                    'http': 'https://secureproxy.example.com:8443',
-                    'https': 'https://secureproxy.example.com:8443'
-                })
-                self.assertEqual(session, mock_session)
+                _get_session()
+                self.assertFalse(mock_session.trust_env)
 
-    def test_session_proxy_only_https(self):
-        """_get_session should use HTTPS_PROXY when only it is set."""
-        with patch.dict(os.environ, {'HTTPS_PROXY': 'https://proxy.example.com:443'}):
+    def test_session_trust_env_false(self):
+        """Key invariant: trust_env=False, so requests lib itself also ignores env."""
+        with patch.dict(os.environ, {'HTTPS_PROXY': 'https://proxy.example.com:443'}, clear=True):
             with patch('scoring.resolver.requests.Session') as mock_session_class:
                 mock_session = MagicMock()
                 mock_session_class.return_value = mock_session
-                
-                session = _get_session()
-                
-                mock_session_class.assert_called_once()
-                self.assertEqual(mock_session.proxies, {
-                    'http': 'https://proxy.example.com:443',
-                    'https': 'https://proxy.example.com:443'
-                })
-                self.assertEqual(session, mock_session)
+                _get_session()
+                self.assertIs(mock_session.trust_env, False)
 
 
 class TestFetchEventsForDate(unittest.TestCase):
@@ -177,30 +158,23 @@ class TestFetchEventsForDate(unittest.TestCase):
 class TestIntegrationWithSession(unittest.TestCase):
     """Integration tests that mock both session creation and its usage."""
     
-    def test_fetch_events_with_proxy_integration(self):
-        """Integration test: _get_session creates session with proxy, then _fetch_events_for_date uses it."""
-        with patch.dict(os.environ, {'HTTPS_PROXY': 'https://proxy.example.com:443'}):
+    def test_fetch_events_with_env_proxy_ignored(self):
+        """Integration: env proxy present, session still fetches normally (trust_env=False)."""
+        with patch.dict(os.environ, {'HTTPS_PROXY': 'https://proxy.example.com:443'}, clear=True):
             with patch('scoring.resolver.requests.Session') as mock_session_class:
                 mock_session = MagicMock()
                 mock_response = MagicMock()
                 mock_session_class.return_value = mock_session
                 mock_session.get.return_value = mock_response
-                
-                # Create session with proxy
+
                 session = _get_session()
-                
-                # Verify proxy was set
-                self.assertEqual(session.proxies, {
-                    'http': 'https://proxy.example.com:443',
-                    'https': 'https://proxy.example.com:443'
-                })
-                
-                # Now use the session to fetch events
+                self.assertFalse(session.trust_env)
+
                 mock_response.status_code = 200
                 mock_response.json.return_value = {"events": [{"test": "data"}]}
-                
+
                 result = _fetch_events_for_date(session, "2026-09-26")
-                
+
                 mock_session.get.assert_called_once_with(
                     f"{THESPORTSDB}/eventsday.php?d=2026-09-26&s=Soccer",
                     timeout=20
