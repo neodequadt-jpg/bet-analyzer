@@ -63,3 +63,7 @@ data/manual/auto_*.json
 # Local scratch
 *.log
 NEE-logs
+
+# footbolno.ru cache
+data/footbolno/
+data/footbolno-test/
