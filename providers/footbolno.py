@@ -107,6 +107,7 @@ class FootbolnoProvider:
 
         # Per-league caches: {league_id: list[Match]}
         self._matches: Dict[int, List[Match]] = {}
+        self._inmem_ts: Dict[int, float] = {}
         # Per-league canonical name index: {league_id: {team_id: set(names)}}
         self._name_index: Dict[int, Dict[str, Set[str]]] = {}
         # Per-league reverse lookup maps (built lazily)
@@ -129,11 +130,14 @@ class FootbolnoProvider:
             List of Match objects.
         """
         if not refresh and league_id in self._matches:
-            return self._matches[league_id]
+            age = time.time() - self._inmem_ts.get(league_id, 0.0)
+            if age <= self.ttl:
+                return self._matches[league_id]
 
         csv_text = self._get_csv(league_id, refresh=refresh)
         matches = self._parse_csv(csv_text, league_id)
         self._matches[league_id] = matches
+        self._inmem_ts[league_id] = time.time()
         self._build_name_index(league_id, matches)
         return matches
 
