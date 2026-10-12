@@ -68,3 +68,6 @@ NEE-logs
 data/footbolno/
 data/footbolno-test/
 EVR-*.md
+
+# bonus_cron runtime state
+data/bonuses_snapshot.json
