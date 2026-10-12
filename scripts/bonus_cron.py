@@ -71,6 +71,22 @@ def _parse_env_file(path: Path) -> int:
     return count
 
 
+def _refresh_tg_globals() -> None:
+    """tg_bot reads BOT_TOKEN/API_BASE at import time.
+    bonus_cron loads env in main() AFTER 'from tg_bot import send_message',
+    so under systemd (clean env) tg_bot.API_BASE would be '/bot' without token.
+    Re-read env into tg_bot module globals.
+    """
+    tg = sys.modules.get("tg_bot")
+    if tg is None:
+        return
+    token = os.environ.get("BOT_TOKEN", "").strip()
+    tg.BOT_TOKEN = token
+    base = os.environ.get("TG_API_BASE", "https://api.telegram.org").rstrip("/")
+    tg.API_BASE = base + "/bot" + token
+    tg.TG_ADMIN_IDS = tg._parse_admin_ids(os.environ.get("TG_ADMIN_ID", ""))
+
+
 def load_env() -> None:
     """Load env from ~/.bet_env and .env.bot (in order, no overwrite)."""
     home_env = Path.home() / ".bet_env"
@@ -167,6 +183,7 @@ def main() -> int:
 
     # 1. Load env
     load_env()
+    _refresh_tg_globals()
 
     # Check TG_ADMIN_ID after env load
     admin_ids = _get_admin_ids()

@@ -378,3 +378,51 @@ class TestEmptyAdminIdReturns2(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestRefreshTgGlobals(unittest.TestCase):
+    """tg_bot caches BOT_TOKEN/API_BASE at import; refresh after env load."""
+
+    def test_refresh_updates_tg_bot_globals(self):
+        import tg_bot as tg
+
+        orig = (tg.BOT_TOKEN, tg.API_BASE, tg.TG_ADMIN_IDS)
+        try:
+            with unittest.mock.patch.dict(
+                os.environ,
+                {"BOT_TOKEN": "test-token-123",
+                 "TG_ADMIN_ID": "111,222",
+                 "TG_API_BASE": "https://api.telegram.org"},
+                clear=False,
+            ):
+                from scripts.bonus_cron import _refresh_tg_globals
+                _refresh_tg_globals()
+                self.assertEqual(tg.BOT_TOKEN, "test-token-123")
+                self.assertTrue(tg.API_BASE.endswith("/bottest-token-123"))
+                self.assertEqual(tg.TG_ADMIN_IDS, {111, 222})
+        finally:
+            tg.BOT_TOKEN, tg.API_BASE, tg.TG_ADMIN_IDS = orig
+
+
+class TestRefreshTgGlobals(unittest.TestCase):
+    """tg_bot caches BOT_TOKEN/API_BASE at import; refresh after env load."""
+
+    def test_refresh_updates_tg_bot_globals(self):
+        import tg_bot as tg
+
+        orig = (tg.BOT_TOKEN, tg.API_BASE, tg.TG_ADMIN_IDS)
+        try:
+            with unittest.mock.patch.dict(
+                os.environ,
+                {"BOT_TOKEN": "test-token-123",
+                 "TG_ADMIN_ID": "111,222",
+                 "TG_API_BASE": "https://api.telegram.org"},
+                clear=False,
+            ):
+                from scripts.bonus_cron import _refresh_tg_globals
+                _refresh_tg_globals()
+                self.assertEqual(tg.BOT_TOKEN, "test-token-123")
+                self.assertTrue(tg.API_BASE.endswith("/bottest-token-123"))
+                self.assertEqual(tg.TG_ADMIN_IDS, {111, 222})
+        finally:
+            tg.BOT_TOKEN, tg.API_BASE, tg.TG_ADMIN_IDS = orig
