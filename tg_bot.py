@@ -273,6 +273,7 @@ def get_welcome_text(chat_id) -> str:
         "/live &lt;sport&gt; &lt;hours&gt; \u2014 upcoming matches (tt/football/hockey/tennis/esports/basketball/volleyball)\n",
         "/mma \u2014 upcoming MMA tournaments (UFC/ACA/Fight Nights)\n",
         "/status \u2014 system status\n",
+        "/stats \u2014 won/lost/ROI за 7 дней\n",
         "/whoami \u2014 my chat_id\n",
         "/reset \u2014 clear AI history\n",
         "/prompt \u2014 show system prompt\n",
@@ -1688,6 +1689,58 @@ def cmd_backtest() -> str:
     return "\n".join(lines)
 
 
+def cmd_stats(chat_id) -> str:
+    """Won/lost/ROI over the last 7 days from data/backtest/results/*.json."""
+    rdir = Path("data/backtest/results")
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    resolved_list = []
+    if rdir.exists():
+        for f in rdir.glob("*.json"):
+            try:
+                rec = json.loads(f.read_text(encoding="utf-8"))
+                ra = rec.get("_resolved_at", "")
+                if ra:
+                    dt = datetime.fromisoformat(ra)
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    if dt < cutoff:
+                        continue
+                resolved_list.append(rec)
+            except Exception:
+                continue
+
+    if not resolved_list:
+        return "📊 <b>Stats (7d)</b>\n\nНет результатов за последние 7 дней."
+
+    won = sum(1 for r in resolved_list if r.get("_won"))
+    lost = len(resolved_list) - won
+    bank = 10000
+    kelly_frac = 0.5
+    profit = 0.0
+    staked = 0.0
+    for r in resolved_list:
+        odds = r.get("odds") or 0
+        kelly = r.get("kelly") or 0
+        stake = bank * kelly * kelly_frac
+        staked += stake
+        if r.get("_won"):
+            profit += stake * (odds - 1)
+        else:
+            profit -= stake
+
+    roi = (profit / staked * 100) if staked > 0 else 0.0
+    winrate = (won / len(resolved_list) * 100) if resolved_list else 0.0
+
+    lines = [
+        f"📊 <b>Stats (7d)</b> — {len(resolved_list)} resolved",
+        "",
+        f"• Выиграло: {won} / Проиграло: {lost}",
+        f"• Winrate: <b>{winrate:.1f}%</b>",
+        f"• ROI: <b>{roi:+.2f}%</b>",
+        f"• Профит: <b>{profit:+.0f}₽</b> на {staked:.0f}₽",
+    ]
+    return "\n".join(lines)
+
 
 def dispatch(command: str) -> str:
     if command in ("/start", "/help"):
@@ -1706,6 +1759,8 @@ def dispatch(command: str) -> str:
         return cmd_report()
     if command == "/status":
         return cmd_status()
+    if command == "/stats":
+        return cmd_stats(_LAST_CHAT_ID)
     if command == "/live":
         # argv was stored in _LAST_LIVE_ARGV by handle()/_handle_callback();
         # empty list -> cmd_live falls back to defaults (tt, 1h)
