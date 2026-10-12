@@ -255,6 +255,11 @@ def get_main_keyboard(chat_id) -> dict:
                 {"text": _t(chat_id, "kb_lang"),   "callback_data": "/lang"},
                 {"text": "\U0001F94A MMA",         "callback_data": "/mma"},
             ],
+            [
+                {"text": "\U0001F381 Bonuses",   "callback_data": "bonuses"},
+                {"text": "\U0001F4B0 Lay calc",  "callback_data": "lay_help"},
+                {"text": "\U0001F6E1\uFE0F BMs", "callback_data": "bookmakers"},
+            ],
         ],
     }
 
@@ -274,6 +279,9 @@ def get_welcome_text(chat_id) -> str:
         "/mma \u2014 upcoming MMA tournaments (UFC/ACA/Fight Nights)\n",
         "/status \u2014 system status\n",
         "/stats \u2014 won/lost/ROI за 7 дней\n",
+        "/bonuses \u2014 \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0435 \u0444\u0440\u0438\u0431\u0435\u0442\u044b \u0438 \u0431\u043e\u043d\u0443\u0441\u044b \u0411\u041a\n",
+        "/lay &lt;freebet&gt; &lt;back&gt; &lt;lay&gt; \u2014 \u043a\u0430\u043b\u044c\u043a\u0443\u043b\u044f\u0442\u043e\u0440 matched betting\n",
+        "/bookmakers \u2014 \u0440\u0435\u0439\u0442\u0438\u043d\u0433 \u043d\u0430\u0434\u0451\u0436\u043d\u043e\u0441\u0442\u0438 \u0411\u041a\n",
         "/whoami \u2014 my chat_id\n",
         "/reset \u2014 clear AI history\n",
         "/prompt \u2014 show system prompt\n",
@@ -1742,6 +1750,72 @@ def cmd_stats(chat_id) -> str:
     return "\n".join(lines)
 
 
+def cmd_bonuses(chat_id) -> str:
+    """List active bonuses from data/bonuses.json."""
+    try:
+        from scoring.bonus_tracker import list_active
+        items = list_active()
+    except Exception as e:
+        return f"\U0001F381 <b>Bonuses</b>\n\n\u041e\u0448\u0438\u0431\u043a\u0430: {e}"
+    if not items:
+        return "\U0001F381 <b>Bonuses</b>\n\n\u041d\u0435\u0442 \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0445 \u0431\u043e\u043d\u0443\u0441\u043e\u0432."
+    lines = [f"\U0001F381 <b>Bonuses</b> \u2014 {len(items)} \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0445", ""]
+    for b in items:
+        lines.append(f"\u2022 <b>{b.bookmaker}</b>: {b.amount}\u20bd ({b.type})")
+        lines.append(f"  \u043a\u044d\u0444 {b.min_odds}\u2013{b.max_odds}, \u0434\u043e {b.expiry}")
+    return "\n".join(lines)
+
+
+def cmd_lay(text: str) -> str:
+    """Matched betting calculator. Usage: /lay <freebet> <back> <lay> [comm]"""
+    try:
+        from scoring.matched_betting import calc_lay
+    except Exception as e:
+        return f"\U0001F4B0 <b>Lay calc</b>\n\n\u041e\u0448\u0438\u0431\u043a\u0430: {e}"
+    parts = (text or "").split()
+    args = [x for x in parts[1:] if x]
+    if len(args) < 3:
+        return ("\U0001F4B0 <b>Lay calc</b>\n\n"
+                "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435: /lay &lt;freebet&gt; &lt;back_odds&gt; &lt;lay_odds&gt; [commission]\n"
+                "\u041f\u0440\u0438\u043c\u0435\u0440: /lay 10000 2.0 2.05")
+    try:
+        free_bet = float(args[0]); back = float(args[1]); lay = float(args[2])
+        comm = float(args[3]) if len(args) > 3 else 0.02
+    except ValueError:
+        return "\U0001F4B0 <b>Lay calc</b>\n\n\u041e\u0448\u0438\u0431\u043a\u0430: \u0430\u0440\u0433\u0443\u043c\u0435\u043d\u0442\u044b \u0434\u043e\u043b\u0436\u043d\u044b \u0431\u044b\u0442\u044c \u0447\u0438\u0441\u043b\u0430\u043c\u0438."
+    try:
+        r = calc_lay(free_bet, back, lay, comm)
+    except Exception as e:
+        return f"\U0001F4B0 <b>Lay calc</b>\n\n\u041e\u0448\u0438\u0431\u043a\u0430 \u0440\u0430\u0441\u0447\u0451\u0442\u0430: {e}"
+    return "\n".join([
+        f"\U0001F4B0 <b>Lay calc</b> (freebet={free_bet:.0f}\u20bd, back={back}, lay={lay}, comm={comm})",
+        "",
+        f"\u2022 Lay stake: <b>{r.lay_stake:.2f}\u20bd</b>",
+        f"\u2022 Liability: <b>{r.liability:.2f}\u20bd</b>",
+        f"\u2022 \u0415\u0441\u043b\u0438 back \u0432\u044b\u0438\u0433\u0440\u0430\u0435\u0442: <b>{r.profit_if_back:+.2f}\u20bd</b>",
+        f"\u2022 \u0415\u0441\u043b\u0438 lay \u0432\u044b\u0438\u0433\u0440\u0430\u0435\u0442: <b>{r.profit_if_lay:+.2f}\u20bd</b>",
+        f"\u2022 <b>\u0413\u0430\u0440\u0430\u043d\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0439 \u043f\u0440\u043e\u0444\u0438\u0442: {r.guaranteed:+.2f}\u20bd</b>",
+    ])
+
+
+def cmd_bookmakers(chat_id) -> str:
+    """Show recommended and risky bookmakers."""
+    try:
+        from scoring.bookmaker_monitor import load, list_recommended, list_risky
+        reg = load(); rec = list_recommended(); risky = list_risky()
+    except Exception as e:
+        return f"\U0001F6E1\uFE0F <b>Bookmakers</b>\n\n\u041e\u0448\u0438\u0431\u043a\u0430: {e}"
+    lines = [f"\U0001F6E1\uFE0F <b>Bookmakers</b> \u2014 \u0432\u0441\u0435\u0433\u043e {len(reg)}", ""]
+    lines.append("<b>\u0420\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0443\u0435\u043c\u044b\u0435 (\u226570):</b>")
+    for name, sc in rec[:10]:
+        lines.append(f"  \u2022 {name} \u2014 <b>{sc}</b>")
+    lines.append("")
+    lines.append("<b>\u0420\u0438\u0441\u043a\u043e\u0432\u0430\u043d\u043d\u044b\u0435 (&lt;50):</b>")
+    for name, sc in risky[:10]:
+        lines.append(f"  \u2022 {name} \u2014 <b>{sc}</b>")
+    return "\n".join(lines)
+
+
 def dispatch(command: str) -> str:
     if command in ("/start", "/help"):
         return WELCOME_TEXT
@@ -1761,6 +1835,12 @@ def dispatch(command: str) -> str:
         return cmd_status()
     if command == "/stats":
         return cmd_stats(_LAST_CHAT_ID)
+    if command == "/bonuses":
+        return cmd_bonuses(_LAST_CHAT_ID)
+    if command == "/lay" or command.startswith("/lay "):
+        return cmd_lay(command)
+    if command == "/bookmakers":
+        return cmd_bookmakers(_LAST_CHAT_ID)
     if command == "/live":
         # argv was stored in _LAST_LIVE_ARGV by handle()/_handle_callback();
         # empty list -> cmd_live falls back to defaults (tt, 1h)
@@ -1796,6 +1876,18 @@ def _handle_callback(cb):
         return
     global _LAST_LIVE_ARGV, _LAST_CHAT_ID
     _LAST_CHAT_ID = chat_id
+
+    if data == "bonuses":
+        send_message(chat_id, cmd_bonuses(chat_id), reply_markup=get_main_keyboard(chat_id))
+        return
+    if data == "lay_help":
+        send_message(chat_id, cmd_lay("/lay"),
+                     reply_markup=get_main_keyboard(chat_id))
+        return
+    if data == "bookmakers":
+        send_message(chat_id, cmd_bookmakers(chat_id),
+                     reply_markup=get_main_keyboard(chat_id))
+        return
 
     # ---- Live submenu ----
     if data == "back:main":
