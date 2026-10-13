@@ -298,6 +298,7 @@ def get_welcome_text(chat_id) -> str:
         "/reset \u2014 clear AI history\n",
         "/prompt \u2014 show system prompt\n",
         "/lang \u2014 switch language (RU/EN)\n",
+        "/subscribe \u2014 Premium 200\u2B50/\u043c\u0435\u0441\u044f\u0446 (AI \u0431\u0435\u0437 \u043b\u0438\u043c\u0438\u0442\u0430, \u0432\u0441\u0435 \u0441\u0438\u0433\u043d\u0430\u043b\u044b)\n",
         _t(chat_id, "welcome_footer"),
     ]
     return "".join(lines)
