@@ -222,6 +222,8 @@ WELCOME_TEXT = (
     "/prompt \u2014 show active system prompt\n"
     "\n"
     "\u0418\u043b\u0438 \u043f\u0440\u043e\u0441\u0442\u043e \u043d\u0430\u043f\u0438\u0448\u0438 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u2014 AI-\u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043d\u0442 \u043e\u0442\u0432\u0435\u0442\u0438\u0442.\n"
+    "\n"
+    "\U0001F48E /subscribe \u2014 Premium 200\u2B50/\u043c\u0435\u0441\u044f\u0446 (AI \u0431\u0435\u0437 \u043b\u0438\u043c\u0438\u0442\u0430, \u0432\u0441\u0435 \u0441\u0438\u0433\u043d\u0430\u043b\u044b)\n"
 )
 
 _MAIN_KEYBOARD = {
@@ -1468,6 +1470,58 @@ def grant_premium(chat_id: int, days: int = 30, stars: int = 0) -> None:
     _save_subscribers(subs)
 
 
+def cmd_subscribe(chat_id: int) -> str:
+    """Send a Telegram Stars invoice for 30-day premium, or report active premium."""
+    if is_premium(chat_id):
+        subs = _load_subscribers()
+        entry = subs.get(str(chat_id), {})
+        expiry_ts = entry.get("expiry_ts", 0)
+        expiry_dt = datetime.fromtimestamp(expiry_ts)
+        date_str = expiry_dt.strftime("%Y-%m-%d %H:%M UTC")
+        return f"💎 Premium активен до {date_str}"
+    payload = f"premium_30d_{chat_id}_{int(time.time())}"
+    tg_post("sendInvoice", {
+        "chat_id": chat_id,
+        "title": "BET-ANALYZER Premium",
+        "description": "30 дней: AI без лимита, все сигналы, ранний доступ к бонусам",
+        "payload": payload,
+        "currency": "XTR",
+        "prices": [{"label": "Premium 30 дней", "amount": 200}],
+    })
+    return ""
+
+
+def _handle_pre_checkout(pq) -> None:
+    """Answer a pre_checkout_query — validate invoice payload."""
+    pq_id = pq.get("id")
+    payload = pq.get("invoice_payload", "")
+    ok = payload.startswith("premium_30d_")
+    try:
+        tg_post("answerPreCheckoutQuery", {
+            "pre_checkout_query_id": pq_id,
+            "ok": ok,
+        })
+    except Exception:
+        try:
+            tg_post("answerPreCheckoutQuery", {
+                "pre_checkout_query_id": pq_id,
+                "ok": False,
+            })
+        except Exception:
+            pass
+
+
+def _handle_successful_payment(msg) -> None:
+    """Process a successful_payment message — grant premium."""
+    sp = msg.get("successful_payment", {})
+    chat_id = msg.get("chat", {}).get("id")
+    if chat_id is None:
+        return
+    total_amount = sp.get("total_amount", 0)
+    grant_premium(chat_id, days=30, stars=total_amount)
+    send_message(chat_id, "✅ Premium активирован на 30 дней. Спасибо!")
+
+
 def cmd_status() -> str:
     uptime_secs = int(time.time() - START_TIME)
     lines = ["<b>BOT STATUS</b>", f"uptime: {fmt_uptime(uptime_secs)}", ""]
@@ -1970,6 +2024,8 @@ def dispatch(command: str) -> str:
         return cmd_stats(_LAST_CHAT_ID)
     if command == "/bonuses":
         return cmd_bonuses(_LAST_CHAT_ID)
+    if command == "/subscribe":
+        return cmd_subscribe(_LAST_CHAT_ID)
     if command == "/lay" or command.startswith("/lay "):
         return cmd_lay(command)
     if command == "/bookmakers":
@@ -2148,10 +2204,15 @@ def _handle_callback(cb):
 # 5. Main loop
 # ---------------------------------------------------------------------------
 def handle(update):
+    pq = update.get("pre_checkout_query")
+    if pq:
+        return _handle_pre_checkout(pq)
     cb = update.get("callback_query")
     if cb:
         return _handle_callback(cb)
     message = update.get("message") or {}
+    if message.get("successful_payment"):
+        return _handle_successful_payment(message)
     chat = message.get("chat") or {}
     chat_id = chat.get("id")
     if chat_id is None:
@@ -2162,7 +2223,10 @@ def handle(update):
     if cmd == "/whoami":
         send_message(chat_id, _t(chat_id, "whoami_hint", id=chat_id))
         return
-    if TG_ADMIN_IDS and chat_id not in TG_ADMIN_IDS:
+    # Public commands: always allowed regardless of whitelist
+    if cmd in ("/start", "/help", "/subscribe"):
+        pass  # разрешено всем
+    elif TG_ADMIN_IDS and chat_id not in TG_ADMIN_IDS:
         send_message(chat_id, _t(chat_id, "wl_reject", id=chat_id))
         return
     if not _rate_check_and_warn(chat_id):
