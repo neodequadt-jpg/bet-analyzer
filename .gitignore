@@ -74,4 +74,5 @@ data/bonuses_snapshot.json
 
 # OpenAI Codex CLI (local install, not part of project)
 .codex-cli/
+.codex-home/
 codex
