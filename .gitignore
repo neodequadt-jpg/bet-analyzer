@@ -71,3 +71,7 @@ EVR-*.md
 
 # bonus_cron runtime state
 data/bonuses_snapshot.json
+
+# OpenAI Codex CLI (local install, not part of project)
+.codex-cli/
+codex
