@@ -14,6 +14,7 @@ import html
 import json
 import os
 import sys
+import tempfile
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -1388,6 +1389,83 @@ def _rate_check_and_warn(chat_id) -> bool:
         except Exception:
             pass
     return False
+
+
+# ---------------------------------------------------------------------------
+# Subscriber storage (Telegram Stars premium)
+# ---------------------------------------------------------------------------
+_SUBSCRIBERS_FILE = Path(__file__).parent / "data" / "subscribers.json"
+
+
+def _load_subscribers() -> dict:
+    """Load subscribers from data/subscribers.json. Returns {} if file missing."""
+    try:
+        if _SUBSCRIBERS_FILE.exists():
+            raw = json.loads(_SUBSCRIBERS_FILE.read_text(encoding="utf-8"))
+            # Convert string keys back to int for callers, but keep as-is in JSON
+            return raw
+    except Exception:
+        pass
+    return {}
+
+
+def _save_subscribers(d: dict) -> None:
+    """Atomic write subscribers dict via tempfile + os.replace."""
+    _SUBSCRIBERS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(d, ensure_ascii=False, indent=2)
+    fd, tmp = tempfile.mkstemp(
+        dir=str(_SUBSCRIBERS_FILE.parent),
+        suffix=".tmp",
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(payload)
+        os.replace(tmp, str(_SUBSCRIBERS_FILE))
+    except Exception:
+        # Clean up temp file on failure
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def is_premium(chat_id: int) -> bool:
+    """True if chat_id has an active (non-expired) premium subscription."""
+    subs = _load_subscribers()
+    entry = subs.get(str(chat_id))
+    if not entry:
+        return False
+    return entry.get("expiry_ts", 0) > time.time()
+
+
+def grant_premium(chat_id: int, days: int = 30, stars: int = 0) -> None:
+    """Grant or extend premium for chat_id.
+
+    - If already premium: extend expiry_ts by `days` from current expiry.
+    - If not premium: set expiry_ts = now + days*86400.
+    - Increment purchase_count, add stars to total_stars.
+    """
+    subs = _load_subscribers()
+    key = str(chat_id)
+    now = time.time()
+    entry = subs.get(key)
+    if entry and entry.get("expiry_ts", 0) > now:
+        # Active premium — extend from current expiry
+        entry["expiry_ts"] = entry["expiry_ts"] + days * 86400
+    else:
+        # No premium or expired — start from now
+        entry = {
+            "expiry_ts": now + days * 86400,
+            "paid_ts": now,
+            "total_stars": 0,
+            "purchase_count": 0,
+        }
+    entry["paid_ts"] = now
+    entry["purchase_count"] = entry.get("purchase_count", 0) + 1
+    entry["total_stars"] = entry.get("total_stars", 0) + stars
+    subs[key] = entry
+    _save_subscribers(subs)
 
 
 def cmd_status() -> str:
