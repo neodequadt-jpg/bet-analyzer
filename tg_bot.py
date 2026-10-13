@@ -86,7 +86,7 @@ BACKOFF_MAX = 60
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "sports_betting_ru.txt"
 CHAT_SYSTEM_PROMPT = _PROMPT_PATH.read_text(encoding="utf-8") if _PROMPT_PATH.exists() else ""
 OMNI_CHAT_URL = "http://127.0.0.1:20128/v1/chat/completions"
-OMNI_CHAT_MODEL = "gemini/gemini-3.1-flash-lite-preview"
+OMNI_CHAT_MODEL = "openrouter/z-ai/glm-4.6"
 OMNI_KEY = os.environ.get("OMNI_KEY", "")
 CHAT_HISTORY = {}
 CHAT_HISTORY_MAX = 12
