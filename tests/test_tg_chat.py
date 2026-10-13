@@ -337,11 +337,16 @@ class TestRateLimitAndRejection(unittest.TestCase):
         self.assertTrue(("администратор" in text.lower()) or ("приглаш" in text.lower()))
 
 
-class TestGeminiSwitch(unittest.TestCase):
-    """Verify switch to Gemini + auth header."""
+class TestChatModel(unittest.TestCase):
+    """Verify /chat model is set to a working provider + auth header."""
 
-    def test_model_is_gemini(self):
-        self.assertTrue(tg_bot.OMNI_CHAT_MODEL.startswith("gemini/"))
+    def test_model_is_set(self):
+        m = tg_bot.OMNI_CHAT_MODEL
+        self.assertTrue(m, "OMNI_CHAT_MODEL must be non-empty")
+        self.assertFalse(
+            m.startswith("gemini/"),
+            "Gemini provider is down in OmniRoute; /chat must not use gemini/*",
+        )
 
     def test_omni_key_set(self):
         self.assertTrue(tg_bot.OMNI_KEY.startswith("sk-"))
