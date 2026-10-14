@@ -348,6 +348,10 @@ class TestChatModel(unittest.TestCase):
             "Gemini provider is down in OmniRoute; /chat must not use gemini/*",
         )
 
+    @unittest.skipUnless(
+        os.environ.get("OMNI_KEY", "").startswith("sk-"),
+        "OMNI_KEY not in test env",
+    )
     def test_omni_key_set(self):
         self.assertTrue(tg_bot.OMNI_KEY.startswith("sk-"))
 

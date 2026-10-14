@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""tg_bot.py — Telegram long-polling bot for BET-ANALYZER.
+"""tg_bot.py — Telegram long-polling bot for Bet Edge.
 
 Pipeline: Fonbet + Smarkets + manual -> consensus -> EV -> value bets -> AI express/report.
 Uses ONLY requests + stdlib (no aiogram / telebot / asyncio / threading).
@@ -100,7 +100,7 @@ DEFAULT_LANG = "ru"
 
 _I18N = {
     "ru": {
-        "welcome_title": "<b>\U0001F9E0 BET-ANALYZER bot</b>\n",
+        "welcome_title": "<b>\U0001F9E0 Bet Edge bot</b>\n",
         "welcome_sub": "Pipeline: Fonbet + Smarkets + manual \u2192 consensus \u2192 EV \u2192 value bets.\n\n",
         "welcome_cmds": "<b>Команды:</b>\n",
         "welcome_footer": "\n\u0418\u043b\u0438 \u043f\u0440\u043e\u0441\u0442\u043e "
@@ -128,7 +128,7 @@ _I18N = {
         "ai_directive": "\u041e\u0442\u0432\u0435\u0447\u0430\u0439 \u0422\u041e\u041b\u042c\u041a\u041e \u043d\u0430 \u0440\u0443\u0441\u0441\u043a\u043e\u043c \u044f\u0437\u044b\u043a\u0435.",
     },
     "en": {
-        "welcome_title": "<b>\U0001F9E0 BET-ANALYZER bot</b>\n",
+        "welcome_title": "<b>\U0001F9E0 Bet Edge bot</b>\n",
         "welcome_sub": "Pipeline: Fonbet + Smarkets + manual \u2192 consensus \u2192 EV \u2192 value bets.\n\n",
         "welcome_cmds": "<b>Commands:</b>\n",
         "welcome_footer": "\nOr just send a message \u2014 the AI assistant will reply.\n",
@@ -206,7 +206,7 @@ _LAST_PLAN_SIGNALS: list = []
 _LAST_CHAT_ID = None
 
 WELCOME_TEXT = (
-    "<b>\U0001F9E0 BET-ANALYZER bot</b>\n"
+    "<b>\U0001F9E0 Bet Edge bot</b>\n"
     "Pipeline: Fonbet + Smarkets + manual \u2192 consensus \u2192 EV \u2192 value bets.\n\n"
     "<b>Commands:</b>\n"
     "/start \u2014 welcome\n"
@@ -1483,7 +1483,7 @@ def cmd_subscribe(chat_id: int) -> str:
     payload = f"premium_30d_{chat_id}_{int(time.time())}"
     tg_post("sendInvoice", {
         "chat_id": chat_id,
-        "title": "BET-ANALYZER Premium",
+        "title": "Bet Edge Premium",
         "description": "30 дней: AI без лимита, все сигналы, ранний доступ к бонусам",
         "payload": payload,
         "currency": "XTR",
