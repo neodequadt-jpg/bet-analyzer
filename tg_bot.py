@@ -2320,6 +2320,12 @@ def next_backoff(current, max_backoff=BACKOFF_MAX) -> int:
 
 
 def main():
+    # Clear dead proxy env (ALL_PROXY=socks://45.11.24.103:1080 from shell).
+    # Requests would otherwise try it and fail with "Unable to determine SOCKS".
+    for _k in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY",
+               "http_proxy", "https_proxy", "all_proxy"):
+        os.environ.pop(_k, None)
+
     if not BOT_TOKEN:
         print(
             "[tg_bot] BOT_TOKEN is not set. "
