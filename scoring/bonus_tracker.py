@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import logging
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -172,3 +173,93 @@ def list_active(path: str | Path = DEFAULT_PATH) -> list[Bonus]:
         )
     logger.debug("Found %d active bonuses", len(active))
     return active
+
+
+# Mapping: metaratings bookmaker id → registry name (Russian, as in BOOKMAKERS)
+_METARATINGS_MAP: dict[str, str] = {
+    "winline": "Винлайн",
+    "betcity": "Бетсити",
+    "liga-stavok": "Лига Ставок",
+    "marathonbet": "Марафон",
+    "pari": "PARI",
+    "olimp": "Олимп",
+    "betm": "Бет Бум",
+    "baltbet-com": "Балтбет",
+    "leon": "Леон",
+    "fonbet": "Фонбет",
+    "betboom": "Бет Бум",
+    "melbet": "Мелбет",
+    "zenit": "Лига Ставок",
+}
+
+
+def sync_from_monitor(path: str | Path = DEFAULT_PATH) -> dict:
+    """Fetch bonuses from metaratings, add new ones to registry.
+
+    Only adds entries for bookmakers that exist in registry.BOOKMAKERS.
+    Does not overwrite existing entries.
+
+    Returns stats: {"added": int, "skipped_existing": int, "skipped_no_map": int}.
+    """
+    from bookmakers.registry import get_bookmaker
+    from scoring.bonus_monitor import fetch_bonuses, normalize
+
+    registry = load(path)
+    stats = {"added": 0, "skipped_existing": 0, "skipped_no_map": 0}
+
+    raw = fetch_bonuses()
+    bonuses = [normalize(r) for r in raw]
+
+    for b in bonuses:
+        reg_name = _METARATINGS_MAP.get(b.bookmaker)
+        if not reg_name:
+            stats["skipped_no_map"] += 1
+            continue
+        if not get_bookmaker(reg_name):
+            stats["skipped_no_map"] += 1
+            continue
+        if reg_name in registry:
+            stats["skipped_existing"] += 1
+            continue
+
+        expiry = (b.end_date or "2026-12-31").split("T")[0]
+        amount = b.amount_rub or 0
+        if amount <= 0:
+            stats["skipped_no_map"] += 1
+            continue
+
+        registry[reg_name] = {
+            "type": "freebet_snr",
+            "amount": amount,
+            "min_odds": 1.30,
+            "max_odds": 3.00,
+            "expiry": expiry,
+            "status": "active",
+        }
+        stats["added"] += 1
+        logger.info("Added bonus: %s %d₽ (from %s)", reg_name, amount, b.bookmaker)
+
+    if stats["added"] > 0:
+        _save(registry, Path(path))
+
+    return stats
+
+
+if __name__ == "__main__":
+    import argparse
+    logging.basicConfig(level=logging.INFO, stream=sys.stderr,
+                        format="%(levelname)s %(name)s: %(message)s")
+    p = argparse.ArgumentParser(description="Bonus tracker CLI")
+    p.add_argument("--sync", action="store_true",
+                   help="Sync bonuses from metaratings into registry")
+    p.add_argument("--list", action="store_true",
+                   help="List active bonuses")
+    args = p.parse_args()
+    if args.sync:
+        stats = sync_from_monitor()
+        print(f"Added: {stats['added']}, Existing: {stats['skipped_existing']}, No map: {stats['skipped_no_map']}")
+    elif args.list:
+        for b in list_active():
+            print(f"  {b.bookmaker}: {b.amount}₽ | {b.type} | {b.min_odds}-{b.max_odds} | до {b.expiry}")
+    else:
+        p.print_help()

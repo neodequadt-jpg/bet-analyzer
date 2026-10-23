@@ -33,6 +33,7 @@ BOOKMAKERS = [
     BookmakerInfo("Балтбет",     "Первый", 2009, "baltbet.ru",    5.5, 200_000,   6.5, 0.78),
     BookmakerInfo("Марафон",     "Первый", 2010, "marathonbet.ru", 3.0, 500_000,   4.0, 0.85),
     BookmakerInfo("Smarkets", "n/a", 2016, "smarkets.com", 0.5, 10_000_000, 0.1, 0.95, is_exchange=True),
+    BookmakerInfo("Pinnacle", "n/a", 2004, "pinnacle.com", 1.5, 100_000, 0.1, 0.97, is_exchange=False),
 ]
 
 

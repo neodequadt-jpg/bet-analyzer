@@ -29,6 +29,7 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from bookmakers.fonbet_api import fetch_rpl_odds
+from bookmakers.theoddsapi_provider import fetch_pinnacle_epl, fetch_pinnacle_nations_league, fetch_pinnacle_bundesliga, fetch_pinnacle_liga, fetch_pinnacle_serie_a, fetch_odds as fetch_theoddsapi_odds
 from bookmakers.fonbet_api import fetch_nations_odds
 from bookmakers.smarkets_adapter import fetch_smarkets_events
 from bookmakers.fonbet_extended import fetch_events_by_sport, resolve_sport
@@ -87,7 +88,8 @@ BACKOFF_MAX = 60
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "sports_betting_ru.txt"
 CHAT_SYSTEM_PROMPT = _PROMPT_PATH.read_text(encoding="utf-8") if _PROMPT_PATH.exists() else ""
 OMNI_CHAT_URL = "http://127.0.0.1:20128/v1/chat/completions"
-OMNI_CHAT_MODEL = "openrouter/z-ai/glm-4.6"
+OMNI_CHAT_MODEL = "bet-edge-primary"
+OMNI_CHAT_MODEL_FREE = "bet-edge-free"
 OMNI_KEY = os.environ.get("OMNI_KEY", "")
 CHAT_HISTORY = {}
 CHAT_HISTORY_MAX = 12
@@ -126,6 +128,28 @@ _I18N = {
         "reset_ok": "\u2705 \u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0434\u0438\u0430\u043b\u043e\u0433\u0430 \u0441 AI \u043e\u0447\u0438\u0449\u0435\u043d\u0430.",
         "lang_switched": "\U0001F310 \u042f\u0437\u044b\u043a \u043f\u0435\u0440\u0435\u043a\u043b\u044e\u0447\u0451\u043d \u043d\u0430: \u0420\u0443\u0441\u0441\u043a\u0438\u0439",
         "ai_directive": "\u041e\u0442\u0432\u0435\u0447\u0430\u0439 \u0422\u041e\u041b\u042c\u041a\u041e \u043d\u0430 \u0440\u0443\u0441\u0441\u043a\u043e\u043c \u044f\u0437\u044b\u043a\u0435.",
+
+        "kb_signals": "\U0001F4CB Сигналы",
+        "sec_analytics": "Аналитика",
+        "sec_live": "Live",
+        "sec_bonus": "Бонусы & Plan",
+        "sec_stats": "Статистика",
+        "sec_other": "<b>Прочее</b>\n",
+        "d_value": "value bets с EV",
+        "d_signals": "топ-5 сигналов + Kelly",
+        "d_express": "AI-экспресс",
+        "d_report": "AI-отчёт на лучший бет",
+        "d_live": "матчи (tt/football/hockey/tennis/esports)",
+        "d_mma": "UFC / ACA / Fight Nights",
+        "d_bonuses": "фрибеты и бонусы БК",
+        "d_plan": "one-tap matched betting",
+        "d_lay": "калькулятор lay",
+        "d_bms": "рейтинг БК",
+        "d_stats": "ROI за 7 дней",
+        "d_status": "статус бота",
+        "d_backtest": "бэктест сигналов",
+        "d_lang": "RU / EN",
+        "d_subscribe": "Premium 200\u2B50/мес",
     },
     "en": {
         "welcome_title": "<b>\U0001F9E0 Bet Edge bot</b>\n",
@@ -151,6 +175,28 @@ _I18N = {
         "reset_ok": "\u2705 AI chat history cleared.",
         "lang_switched": "\U0001F310 Language switched to: English",
         "ai_directive": "Reply ONLY in English.",
+
+        "kb_signals": "\U0001F4CB Signals",
+        "sec_analytics": "Analytics",
+        "sec_live": "Live",
+        "sec_bonus": "Bonuses & Plan",
+        "sec_stats": "Statistics",
+        "sec_other": "<b>Other</b>\n",
+        "d_value": "value bets with EV",
+        "d_signals": "top-5 signals + Kelly",
+        "d_express": "AI express",
+        "d_report": "AI report on top bet",
+        "d_live": "matches (tt/football/hockey/tennis/esports)",
+        "d_mma": "UFC / ACA / Fight Nights",
+        "d_bonuses": "freebets & bonuses",
+        "d_plan": "one-tap matched betting",
+        "d_lay": "lay calculator",
+        "d_bms": "bookmaker ratings",
+        "d_stats": "ROI over 7 days",
+        "d_status": "bot status",
+        "d_backtest": "signal backtest",
+        "d_lang": "RU / EN",
+        "d_subscribe": "Premium 200\u2B50/mo",
     },
 }
 
@@ -206,72 +252,83 @@ _LAST_PLAN_SIGNALS: list = []
 _LAST_CHAT_ID = None
 
 WELCOME_TEXT = (
-    "<b>\U0001F9E0 Bet Edge bot</b>\n"
-    "Pipeline: Fonbet + Smarkets + manual \u2192 consensus \u2192 EV \u2192 value bets.\n\n"
-    "<b>Commands:</b>\n"
-    "/start \u2014 welcome\n"
-    "/help \u2014 this help\n"
-    "/value \u2014 run pipeline, show value bets\n"
-    "/express \u2014 AI express from value bets\n"
-    "/report \u2014 AI analyst report on the top bet\n"
-    "/live &lt;sport&gt; &lt;hours&gt; \u2014 upcoming matches (tt/football/hockey/tennis/esports)\n"
-    "/mma \u2014 upcoming MMA tournaments (UFC/ACA/Fight Nights)\n"
-    "/status \u2014 bot & pipeline status\n"
-    "/whoami \u2014 print your chat_id\n"
-    "/reset \u2014 clear AI chat history\n"
-    "/prompt \u2014 show active system prompt\n"
-    "\n"
-    "\u0418\u043b\u0438 \u043f\u0440\u043e\u0441\u0442\u043e \u043d\u0430\u043f\u0438\u0448\u0438 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u2014 AI-\u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043d\u0442 \u043e\u0442\u0432\u0435\u0442\u0438\u0442.\n"
-    "\n"
-    "\U0001F48E /subscribe \u2014 Premium 200\u2B50/\u043c\u0435\u0441\u044f\u0446 (AI \u0431\u0435\u0437 \u043b\u0438\u043c\u0438\u0442\u0430, \u0432\u0441\u0435 \u0441\u0438\u0433\u043d\u0430\u043b\u044b)\n"
+    "<b>\U0001F9E0 Bet Edge</b> — value bets &amp; matched betting\n\n"
+    "\U0001F517 <b>Аналитика</b>\n"
+    "/value — value bets с EV\n"
+    "/signals — топ-5 сигналов + Kelly\n"
+    "/express — AI-экспресс\n"
+    "/report — AI-отчёт на лучший бет\n\n"
+    "\U0001F3D8 <b>Live</b>\n"
+    "/live &lt;sport&gt; &lt;h&gt; — матчи (tt/football/hockey/tennis/esports)\n"
+    "/mma — UFC / ACA / Fight Nights\n\n"
+    "\U0001F381 <b>Бонусы &amp; Plan</b>\n"
+    "/bonuses — фрибеты и бонусы БК\n"
+    "/plan — one-tap matched betting\n"
+    "/lay — калькулятор lay\n"
+    "/bookmakers — рейтинг БК\n\n"
+    "\U0001F4CA <b>Статистика</b>\n"
+    "/stats — ROI за 7 дней\n"
+    "/status — статус бота\n"
+    "/backtest — бэктест сигналов\n\n"
+    "\u2699\ufe0f <b>Прочее</b>\n"
+    "/lang — RU / EN\n"
+    "/subscribe — Premium 200\u2B50/мес\n\n"
+    "\U0001F4AC Или просто напиши — AI ответит.\n"
 )
 
 _MAIN_KEYBOARD = {
     "inline_keyboard": [
         [
-            {"text": "\u26A1 \u042d\u043a\u0441\u043f\u0440\u0435\u0441\u0441", "callback_data": "/express"},
-            {"text": "\U0001F3BE Live TT", "callback_data": "/live tt 1"},
-        ],
-        [
             {"text": "\U0001F4CA Value", "callback_data": "/value"},
-            {"text": "\U0001F4C4 \u041e\u0442\u0447\u0451\u0442", "callback_data": "/report"},
+            {"text": "\u26A1 Экспресс", "callback_data": "/express"},
+            {"text": "\U0001F4C4 Отчёт", "callback_data": "/report"},
         ],
         [
-            {"text": "\u2139\uFE0F \u0421\u0442\u0430\u0442\u0443\u0441", "callback_data": "/status"},
+            {"text": "\U0001F534 Live", "callback_data": "live_sport:root"},
+            {"text": "\U0001F94A MMA", "callback_data": "/mma"},
+            {"text": "\U0001F4CB Сигналы", "callback_data": "/signals"},
+        ],
+        [
+            {"text": "\U0001F381 Bonuses", "callback_data": "bonuses"},
+            {"text": "\U0001F4CB Plan", "callback_data": "plan_help"},
+            {"text": "\U0001F4B0 Lay", "callback_data": "lay_help"},
+        ],
+        [
+            {"text": "\U0001F4C8 Stats", "callback_data": "/stats"},
+            {"text": "\U0001F6E1\ufe0f БК", "callback_data": "bookmakers"},
             {"text": "\U0001F310 EN", "callback_data": "/lang"},
         ],
     ],
 }
 
 def get_main_keyboard(chat_id) -> dict:
-    """Inline keyboard with per-chat language labels (3 grouped rows)."""
+    """Inline keyboard with per-chat language labels (4 grouped rows)."""
     return {
         "inline_keyboard": [
             [
-                {"text": _t(chat_id, "kb_express"), "callback_data": "/express"},
-                {"text": "\U0001F534 Live",        "callback_data": "live_sport:root"},
-            ],
-            [
                 {"text": _t(chat_id, "kb_value"),  "callback_data": "/value"},
+                {"text": _t(chat_id, "kb_express"), "callback_data": "/express"},
                 {"text": _t(chat_id, "kb_report"), "callback_data": "/report"},
             ],
             [
-                {"text": _t(chat_id, "kb_status"), "callback_data": "/status"},
-                {"text": _t(chat_id, "kb_lang"),   "callback_data": "/lang"},
+                {"text": "\U0001F534 Live",        "callback_data": "live_sport:root"},
                 {"text": "\U0001F94A MMA",         "callback_data": "/mma"},
+                {"text": _t(chat_id, "kb_signals"), "callback_data": "/signals"},
             ],
             [
                 {"text": "\U0001F381 Bonuses",   "callback_data": "bonuses"},
                 {"text": "\U0001F4CB Plan",      "callback_data": "plan_help"},
-                {"text": "\U0001F4B0 Lay calc",  "callback_data": "lay_help"},
+                {"text": "\U0001F4B0 Lay",       "callback_data": "lay_help"},
             ],
             [
-                {"text": "\U0001F381 Bonuses",   "callback_data": "bonuses"},
-                {"text": "\U0001F4B0 Lay calc",  "callback_data": "lay_help"},
-                {"text": "\U0001F6E1\uFE0F BMs", "callback_data": "bookmakers"},
+                {"text": "\U0001F4C8 Stats",    "callback_data": "/stats"},
+                {"text": "\U0001F6E1\ufe0f БК", "callback_data": "bookmakers"},
+                {"text": _t(chat_id, "kb_lang"),   "callback_data": "/lang"},
             ],
         ],
     }
+
+
 
 def get_welcome_text(chat_id) -> str:
     """Welcome/help text localized for the chat's language."""
@@ -279,29 +336,32 @@ def get_welcome_text(chat_id) -> str:
         _t(chat_id, "welcome_title"),
         _t(chat_id, "welcome_sub"),
         _t(chat_id, "welcome_cmds"),
-        "/start \u2014 welcome\n",
-        "/help \u2014 help\n",
-        "/value \u2014 value bets\n",
-        "/signals \u2014 top-5 value-bets with Kelly stakes\n",
-        "/express \u2014 AI express\n",
-        "/report \u2014 AI report\n",
-        "/live &lt;sport&gt; &lt;hours&gt; \u2014 upcoming matches (tt/football/hockey/tennis/esports/basketball/volleyball)\n",
-        "/mma \u2014 upcoming MMA tournaments (UFC/ACA/Fight Nights)\n",
-        "/status \u2014 system status\n",
-        "/stats \u2014 won/lost/ROI за 7 дней\n",
-        "/bonuses \u2014 \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0435 \u0444\u0440\u0438\u0431\u0435\u0442\u044b \u0438 \u0431\u043e\u043d\u0443\u0441\u044b \u0411\u041a\n",
-        "/lay &lt;freebet&gt; &lt;back&gt; &lt;lay&gt; \u2014 \u043a\u0430\u043b\u044c\u043a\u0443\u043b\u044f\u0442\u043e\u0440 matched betting\n",
-        "/bookmakers \u2014 \u0440\u0435\u0439\u0442\u0438\u043d\u0433 \u043d\u0430\u0434\u0451\u0436\u043d\u043e\u0441\u0442\u0438 \u0411\u041a\n",
-        "/plan \u2014 one-tap \u043f\u043b\u0430\u043d matched betting\n",
-        "/plan_go &lt;bk&gt; &lt;N&gt; &lt;lay&gt; \u2014 \u0444\u0438\u043d\u0430\u043b\u044c\u043d\u044b\u0439 \u0431\u043b\u043e\u043a\n",
-        "/whoami \u2014 my chat_id\n",
-        "/reset \u2014 clear AI history\n",
-        "/prompt \u2014 show system prompt\n",
-        "/lang \u2014 switch language (RU/EN)\n",
-        "/subscribe \u2014 Premium 200\u2B50/\u043c\u0435\u0441\u044f\u0446 (AI \u0431\u0435\u0437 \u043b\u0438\u043c\u0438\u0442\u0430, \u0432\u0441\u0435 \u0441\u0438\u0433\u043d\u0430\u043b\u044b)\n",
+        "\U0001F517 <b>", _t(chat_id, "sec_analytics"), "</b>\n",
+        "/value — ", _t(chat_id, "d_value"), "\n",
+        "/signals — ", _t(chat_id, "d_signals"), "\n",
+        "/express — ", _t(chat_id, "d_express"), "\n",
+        "/report — ", _t(chat_id, "d_report"), "\n\n",
+        "\U0001F3D8 <b>", _t(chat_id, "sec_live"), "</b>\n",
+        "/live &lt;sport&gt; &lt;h&gt; — ", _t(chat_id, "d_live"), "\n",
+        "/mma — ", _t(chat_id, "d_mma"), "\n\n",
+        "\U0001F381 <b>", _t(chat_id, "sec_bonus"), "</b>\n",
+        "/bonuses — ", _t(chat_id, "d_bonuses"), "\n",
+        "/plan — ", _t(chat_id, "d_plan"), "\n",
+        "/lay — ", _t(chat_id, "d_lay"), "\n",
+        "/bookmakers — ", _t(chat_id, "d_bms"), "\n\n",
+        "\U0001F4CA <b>", _t(chat_id, "sec_stats"), "</b>\n",
+        "/stats — ", _t(chat_id, "d_stats"), "\n",
+        "/status — ", _t(chat_id, "d_status"), "\n",
+        "/backtest — ", _t(chat_id, "d_backtest"), "\n\n",
+        "\u2699\ufe0f ", _t(chat_id, "sec_other"),
+        "/lang — ", _t(chat_id, "d_lang"), "\n",
+        "/subscribe — ", _t(chat_id, "d_subscribe"), "\n\n",
         _t(chat_id, "welcome_footer"),
     ]
     return "".join(lines)
+
+
+
 
 OUTCOME_LABELS = {"home": "home", "draw": "draw", "away": "away"}
 
@@ -660,6 +720,15 @@ def build_pipeline(skip_stale_hours: float = 1.0,
         fonbet = list(fonbet) + nations
     except Exception as _e:
         print(f"[build_pipeline] nations failed: {_sanitize_error(_e)}", file=sys.stderr)
+    # Fonbet UEL/UECL (overlap with Pinnacle for cross-BK consensus)
+    fonbet_eu = []
+    try:
+        from bookmakers.fonbet_extended import fetch_european_cups
+        fonbet_eu = fetch_european_cups(hours=48)
+        fonbet = list(fonbet) + fonbet_eu
+        print(f"[build_pipeline] fonbet UEL/UECL: {len(fonbet_eu)}", file=sys.stderr)
+    except Exception as _e:
+        print(f"[build_pipeline] fonbet EU failed: {_sanitize_error(_e)}", file=sys.stderr)
     manual = []
     for eid in list_manual_events():
         manual.extend(parse_manual(eid))
@@ -672,7 +741,23 @@ def build_pipeline(skip_stale_hours: float = 1.0,
         print(f"[build_pipeline] smarkets FAILED: {type(_e).__name__}: {_sanitize_error(_e)}", file=sys.stderr)
         traceback.print_exc()
         smarkets = []
-    groups = merge(fonbet, manual, smarkets)
+    # Pinnacle (TheOddsAPI) — sharp book для калибровки consensus
+    pinnacle = []
+    try:
+        pinnacle_epl = fetch_pinnacle_epl(ttl=300)
+        pinnacle_buli = fetch_pinnacle_bundesliga(ttl=300)
+        pinnacle_liga = fetch_pinnacle_liga(ttl=300)
+        pinnacle_seriea = fetch_pinnacle_serie_a(ttl=300)
+        pinnacle_nl = fetch_pinnacle_nations_league(ttl=300)
+        # Pinnacle UEL + UECL (overlap with Fonbet extended)
+        pinnacle_uel = fetch_theoddsapi_odds('soccer_uefa_europa_league', bookmakers='pinnacle', ttl=300)
+        pinnacle_uecl = fetch_theoddsapi_odds('soccer_uefa_europa_conference_league', bookmakers='pinnacle', ttl=300)
+        pinnacle = pinnacle_epl + pinnacle_nl + pinnacle_buli + pinnacle_liga + pinnacle_seriea + pinnacle_uel + pinnacle_uecl
+        print(f"[build_pipeline] pinnacle: {len(pinnacle)} events", file=sys.stderr)
+    except Exception as _e:
+        print(f"[build_pipeline] pinnacle FAILED: {_sanitize_error(_e)}", file=sys.stderr)
+        pinnacle = []
+    groups = merge(fonbet, manual, smarkets, pinnacle)
 
     now = time.time()
     cutoff_ts = now - (skip_stale_hours * 3600)
@@ -1442,6 +1527,29 @@ def is_premium(chat_id: int) -> bool:
     return entry.get("expiry_ts", 0) > time.time()
 
 
+# Commands that require premium subscription
+_PREMIUM_COMMANDS = {"/value", "/signals", "/plan", "/plan_go", "/express", "/report"}
+
+
+def _premium_gate(command: str, chat_id: int) -> str | None:
+    """Return None if command is allowed, or a rejection message if premium required.
+
+    Free commands: /start, /help, /subscribe, /bonuses, /stats, /backtest, /live, /mma, /status, /bookmakers, /lay, /whoami
+    Premium commands: /value, /signals, /plan, /plan_go, /express, /report
+    """
+    cmd = command.split()[0].split("@")[0].lower()
+    if cmd not in _PREMIUM_COMMANDS:
+        return None
+    if is_premium(chat_id):
+        return None
+    return (
+        "🔒 Это функция <b>Premium</b>\n\n"
+        "Бесплатно: /bonuses, /stats, /live, /backtest\n"
+        "Premium: /value, /signals, /plan, /express\n\n"
+        "Подпишись: /subscribe"
+    )
+
+
 def grant_premium(chat_id: int, days: int = 30, stars: int = 0) -> None:
     """Grant or extend premium for chat_id.
 
@@ -1682,21 +1790,30 @@ def ai_chat(chat_id, user_text: str) -> str:
         messages.append({"role": "system", "content": system_text})
     messages.extend(hist[-CHAT_HISTORY_MAX:])
     messages.append({"role": "user", "content": user_text})
-    payload = {
-        "model": OMNI_CHAT_MODEL,
-        "messages": messages,
-        "temperature": 0.4,
-        "max_tokens": 2000,
-    }
-    r = requests.post(
-        OMNI_CHAT_URL,
-        json=payload,
-        headers={"Authorization": f"Bearer {OMNI_KEY}",
-                 "Content-Type": "application/json"},
-        timeout=120,
-    )
-    r.raise_for_status()
-    data = r.json()
+    # Try primary combo, fall back to free combo on failure
+    data = None
+    for model_name in (OMNI_CHAT_MODEL, OMNI_CHAT_MODEL_FREE):
+        payload = {
+            "model": model_name,
+            "messages": messages,
+            "temperature": 0.4,
+            "max_tokens": 2000,
+        }
+        try:
+            r = requests.post(
+                OMNI_CHAT_URL,
+                json=payload,
+                headers={"Authorization": f"Bearer {OMNI_KEY}",
+                         "Content-Type": "application/json"},
+                timeout=120,
+            )
+            r.raise_for_status()
+            data = r.json()
+            break
+        except Exception as _combo_err:
+            print(f"[tg_bot] combo {model_name} failed: {_sanitize_error(_combo_err)}", file=sys.stderr)
+    if data is None:
+        return "⚠️ AI временно недоступен. Попробуй позже."
     choices = data.get("choices") or []
     content = ""
     if choices:
@@ -2005,6 +2122,10 @@ def cmd_plan_go(text: str) -> str:
 
 
 def dispatch(command: str) -> str:
+    _base_cmd = command.split()[0].split("@")[0].lower() if command else ""
+    _reject = _premium_gate(_base_cmd, _LAST_CHAT_ID)
+    if _reject:
+        return _reject
     if command in ("/start", "/help"):
         return WELCOME_TEXT
     if command == "/value":
@@ -2065,6 +2186,12 @@ def _handle_callback(cb):
             send_message(chat_id, _t(chat_id, "wl_reject", id=chat_id))
         except Exception:
             pass
+        return
+    # Premium gate
+    _cmd = data.split()[0].split("@")[0].lower() if data else ""
+    premium_reject = _premium_gate(_cmd, chat_id)
+    if premium_reject:
+        send_message(chat_id, premium_reject, parse_mode="HTML")
         return
     if not _rate_check_and_warn(chat_id):
         return
@@ -2288,6 +2415,28 @@ def handle(update):
     send_message(chat_id, reply)
 
 
+def _set_bot_menu() -> None:
+    """Register bot commands in Telegram native menu (hamburger icon)."""
+    commands = [
+        ("value", "Value bets с EV"),
+        ("signals", "Топ-5 сигналов + Kelly"),
+        ("express", "AI-экспресс"),
+        ("live", "Ближайшие матчи"),
+        ("bonuses", "Фрибеты и бонусы БК"),
+        ("plan", "Matched betting план"),
+        ("stats", "ROI за 7 дней"),
+        ("status", "Статус бота"),
+        ("subscribe", "Premium подписка"),
+    ]
+    try:
+        tg_post("setMyCommands", {"commands": [
+            {"command": c, "description": d} for c, d in commands
+        ]})
+        print("[tg_bot] native menu registered", file=sys.stderr)
+    except Exception as e:
+        print(f"[tg_bot] setMyCommands failed: {e}", file=sys.stderr)
+
+
 def warmup(max_pings=5, pause=1.0) -> int:
     """Probe Telegram with getMe until the flapping tunnel answers.
 
@@ -2352,6 +2501,7 @@ def main():
 
     _load_daily_state()
     warmup()
+    _set_bot_menu()
 
     offset = None
     backoff = BACKOFF_INITIAL

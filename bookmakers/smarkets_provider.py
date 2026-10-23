@@ -11,6 +11,7 @@ BASE = "https://api.smarkets.com/v3"
 
 def get_http_session():
     s = requests.Session()
+    s.trust_env = False
     proxy = os.getenv("HTTPS_PROXY") or os.getenv("HTTP_PROXY")
     if proxy:
         s.proxies = {"http": proxy, "https": proxy}
@@ -30,8 +31,8 @@ def _get(session, url, timeout=20, retries=3):
             return r
         except Exception as e:
             last = e
-            time.sleep(1.5 * (2 ** attempt))
-    print(f"[smarkets] give up {url}: {last}")
+            time.sleep(1.5 * (2 ** attempt) + (attempt * 0.3))
+    print(f"[smarkets] give up {url}: {last}", file=__import__("sys").stderr)
     return None
 
 
@@ -79,7 +80,7 @@ def _cache_save(events):
         pass
 
 
-def fetch_events(hours=72, max_events=30, deadline_sec=25):
+def fetch_events(hours=72, max_events=30, deadline_sec=40):
     now = time.time()
     lo = now - 3600
     hi = now + hours * 3600

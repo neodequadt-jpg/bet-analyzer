@@ -54,17 +54,22 @@ class TestChunkText(unittest.TestCase):
 class TestMainKeyboard(unittest.TestCase):
     def test_keyboard_structure(self):
         rows = tg_bot._MAIN_KEYBOARD["inline_keyboard"]
-        self.assertEqual(len(rows), 3)
-        self.assertEqual(len(rows[0]), 2)
-        self.assertEqual(len(rows[1]), 2)
-        self.assertEqual(len(rows[2]), 2)
+        self.assertEqual(len(rows), 4)
+        self.assertEqual(len(rows[0]), 3)  # Value, Express, Report
+        self.assertEqual(len(rows[1]), 3)  # Live, MMA, Signals
+        self.assertEqual(len(rows[2]), 3)  # Bonuses, Plan, Lay
+        self.assertEqual(len(rows[3]), 3)  # Stats, BK, Lang
 
     def test_callback_data(self):
         rows = tg_bot._MAIN_KEYBOARD["inline_keyboard"]
         datas = {b["callback_data"] for row in rows for b in row}
-        self.assertEqual(
-            datas, {"/value", "/express", "/report", "/status", "/live tt 1", "/lang"}
-        )
+        expected = {
+            "/value", "/express", "/report",
+            "live_sport:root", "/mma", "/signals",
+            "bonuses", "plan_help", "lay_help",
+            "/stats", "bookmakers", "/lang",
+        }
+        self.assertEqual(datas, expected)
 
 
 class TestDispatch(unittest.TestCase):
@@ -87,7 +92,7 @@ class TestHandleCallback(unittest.TestCase):
         # Updated mock to match cmd_value's new return type (text, keyboard)
         with mock.patch.object(tg_bot, "tg_post", fake_post), \
              mock.patch.object(tg_bot, "cmd_value", lambda: ("OK:/value", None)), \
-             mock.patch.object(tg_bot, "TG_ADMIN_IDS", set()):
+             mock.patch.object(tg_bot, "TG_ADMIN_IDS", set()),              mock.patch.object(tg_bot, "is_premium", lambda cid: True):
             tg_bot._handle_callback({
                 "id": "cb1", "data": "/value",
                 "message": {"chat": {"id": 42}},
@@ -152,7 +157,7 @@ class TestLiveCommand(unittest.TestCase):
     def test_live_keyboard_present(self):
         rows = tg_bot._MAIN_KEYBOARD["inline_keyboard"]
         datas = [b["callback_data"] for row in rows for b in row]
-        self.assertIn("/live tt 1", datas)
+        self.assertIn("live_sport:root", datas)
 
 
 class TestLiveQueryDetection(unittest.TestCase):

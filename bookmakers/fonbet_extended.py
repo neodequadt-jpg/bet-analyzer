@@ -195,3 +195,86 @@ if __name__ == "__main__":
     for e in events[:10]:
         print(f"  {e['start_ts']} {e['home']} vs {e['away']} "
               f"{e['odds_home']} {e['odds_away']} [{e['place']}]")
+
+
+def fetch_european_cups(hours: int = 48) -> list:
+    """Fetch Fonbet odds for Europa League + Conference League as OddsEvent list.
+
+    These overlap with Pinnacle on TheOddsAPI, enabling cross-BK consensus.
+    """
+    from bookmakers.parser import OddsEvent
+    from bookmakers.fonbet_api import F_DRAW
+
+    raw = fetch_list_base(force=False)
+    if not raw:
+        return []
+
+    sports_data = raw.get("sports", [])
+    football_segments = set()
+    for sp in sports_data:
+        if sp.get("id") != 1:  # 1 = football
+            continue
+        for seg in sp.get("segments", []):
+            football_segments.add(seg.get("id"))
+
+    now = time.time()
+    events: list[OddsEvent] = []
+
+    for ev in raw.get("events", []):
+        if ev.get("level") != 1 or ev.get("kind") != 1:
+            continue
+        if ev.get("sportId") not in football_segments:
+            continue
+
+        name = (ev.get("name") or "").lower()
+        if "лига европ" not in name and "лига конференц" not in name:
+            continue
+
+        start_ts = ev.get("startTime", 0)
+        if start_ts < now - 300 or start_ts > now + hours * 3600:
+            continue
+
+        home = ev.get("nameRu", "").split(" — ")[0].strip() if "—" in (ev.get("nameRu") or "") else ""
+        away = ev.get("nameRu", "").split(" — ")[1].strip() if "—" in (ev.get("nameRu") or "") else ""
+        if not home or not away:
+            continue
+
+        factors = {f.get("f"): f for f in ev.get("factors", [])}
+        odds_h = _factor_to_odds(factors.get(F_HOME, {}))
+        odds_d = _factor_to_odds(factors.get(F_DRAW, {}))
+        odds_a = _factor_to_odds(factors.get(F_AWAY, {}))
+
+        if not odds_h or not odds_a:
+            continue
+
+        league_name = ev.get("leagueNameRu") or ev.get("leagueName") or "UEL"
+        events.append(OddsEvent(
+            event_id=f"fonbet_{ev.get('id', '')}",
+            sport="football",
+            league=league_name,
+            home=home,
+            away=away,
+            kickoff_iso="",
+            bookmaker="Фонбет",
+            odds_home=odds_h,
+            odds_draw=odds_d,
+            odds_away=odds_a,
+            odds_total_over=None,
+            odds_total_under=None,
+            total_line=None,
+        ))
+
+    return events
+
+
+def _factor_to_odds(factor: dict) -> float | None:
+    """Convert Fonbet factor dict to decimal odds."""
+    if not factor:
+        return None
+    v = factor.get("v")
+    if v is None:
+        return None
+    try:
+        return round(float(v) / 10000, 3) if float(v) > 0 else None
+    except (TypeError, ValueError):
+        return None

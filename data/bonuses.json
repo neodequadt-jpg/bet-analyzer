@@ -1,18 +1,98 @@
 {
-  "Winline": {
-    "type": "freebet_snr",
-    "amount": 10000,
-    "min_odds": 1.3,
-    "max_odds": 2.5,
-    "expiry": "2026-12-31",
-    "status": "active"
-  },
   "PARI": {
-    "type": "freebet_snr",
     "amount": 15000,
-    "min_odds": 1.5,
-    "max_odds": 3.0,
     "expiry": "2026-12-31",
-    "status": "active"
+    "max_odds": 3.0,
+    "min_odds": 1.5,
+    "status": "active",
+    "type": "freebet_snr"
+  },
+  "Winline": {
+    "amount": 10000,
+    "expiry": "2026-12-31",
+    "max_odds": 2.5,
+    "min_odds": 1.3,
+    "status": "active",
+    "type": "freebet_snr"
+  },
+  "Балтбет": {
+    "amount": 600,
+    "expiry": "2026-12-31",
+    "max_odds": 3.0,
+    "min_odds": 1.3,
+    "status": "active",
+    "type": "freebet_snr"
+  },
+  "Бет Бум": {
+    "amount": 7000,
+    "expiry": "2026-12-31",
+    "max_odds": 3.0,
+    "min_odds": 1.3,
+    "status": "active",
+    "type": "freebet_snr"
+  },
+  "Бетсити": {
+    "amount": 2000,
+    "expiry": "2026-12-31",
+    "max_odds": 3.0,
+    "min_odds": 1.3,
+    "status": "active",
+    "type": "freebet_snr"
+  },
+  "Винлайн": {
+    "amount": 10000,
+    "expiry": "2026-12-31",
+    "max_odds": 3.0,
+    "min_odds": 1.3,
+    "status": "active",
+    "type": "freebet_snr"
+  },
+  "Леон": {
+    "amount": 18000,
+    "expiry": "2026-12-31",
+    "max_odds": 3.0,
+    "min_odds": 1.3,
+    "status": "active",
+    "type": "freebet_snr"
+  },
+  "Лига Ставок": {
+    "amount": 35000,
+    "expiry": "2026-12-31",
+    "max_odds": 3.0,
+    "min_odds": 1.3,
+    "status": "active",
+    "type": "freebet_snr"
+  },
+  "Марафон": {
+    "amount": 40000,
+    "expiry": "2027-06-30",
+    "max_odds": 3.0,
+    "min_odds": 1.3,
+    "status": "active",
+    "type": "freebet_snr"
+  },
+  "Мелбет": {
+    "amount": 30000,
+    "expiry": "2026-12-31",
+    "max_odds": 3.0,
+    "min_odds": 1.3,
+    "status": "active",
+    "type": "freebet_snr"
+  },
+  "Олимп": {
+    "amount": 15000,
+    "expiry": "2026-12-31",
+    "max_odds": 3.0,
+    "min_odds": 1.3,
+    "status": "active",
+    "type": "freebet_snr"
+  },
+  "Фонбет": {
+    "amount": 15000,
+    "expiry": "2026-12-31",
+    "max_odds": 3.0,
+    "min_odds": 1.3,
+    "status": "active",
+    "type": "freebet_snr"
   }
 }

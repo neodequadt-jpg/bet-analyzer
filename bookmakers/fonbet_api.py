@@ -187,6 +187,9 @@ NATIONS_DIVISIONS = {
     46068: "UEFA Nations League D",
 }
 
+# Дивизионы Лиги наций с нулевой/отрицательной ROI — исключаются по умолчанию
+NATIONS_EXCLUDE_TIERS = ["C", "D"]
+
 
 def parse_nations_events(data: dict) -> list[OddsEvent]:
     """Парсит матчи Лиги наций УЕФА (дивизионы A/B/C/D)."""
@@ -194,8 +197,13 @@ def parse_nations_events(data: dict) -> list[OddsEvent]:
     out: list[OddsEvent] = []
 
     for sport_id in SPORT_IDS_NATIONS:
+        # Skip excluded tiers (League C/D — 0/28 win rate)
+        division = NATIONS_DIVISIONS.get(sport_id, "")
+        tier = division.rsplit(" ", 1)[-1] if division else ""
+        if tier in NATIONS_EXCLUDE_TIERS:
+            continue
         events = _top_events_by_sport(data, sport_id)
-        league_name = NATIONS_DIVISIONS.get(sport_id, "UEFA Nations League")
+        league_name = division or "UEFA Nations League"
         for ev in events:
             cf = cf_map.get(ev["id"])
             if not cf:
