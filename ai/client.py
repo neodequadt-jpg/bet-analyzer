@@ -18,7 +18,9 @@ MODEL = "gemini/gemini-3.1-flash-lite-preview"
 class BettingAI:
     def __init__(self, api_key: str | None = None, timeout: int = 120):
         # OmniRoute может работать без auth. Пустой ключ = no auth.
-        self.api_key = api_key or os.environ.get("OMNI_KEY") or "sk-84454d30f22bfcb1-5d2256-72fbd6b3"
+        self.api_key = api_key or os.environ.get("OMNI_KEY")
+        if not self.api_key:
+            raise RuntimeError("OMNI_KEY not set (and no explicit api_key passed)")
         self.timeout = timeout
 
     @staticmethod
