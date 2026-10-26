@@ -1965,9 +1965,28 @@ def cmd_stats(chat_id) -> str:
         for f in rdir.glob("*.json"):
             try:
                 rec = json.loads(f.read_text(encoding="utf-8"))
-                ra = rec.get("_resolved_at", "")
-                if ra:
-                    dt = datetime.fromisoformat(ra)
+                dt = None
+                kickoff = rec.get("kickoff")
+                if kickoff:
+                    try:
+                        dt = datetime.fromisoformat(kickoff)
+                    except ValueError:
+                        try:
+                            parsed = datetime.strptime(kickoff, "%d.%m %H:%M")
+                            now_utc = datetime.now(timezone.utc)
+                            dt = parsed.replace(year=now_utc.year, tzinfo=timezone.utc)
+                            if dt > now_utc:
+                                dt = dt.replace(year=now_utc.year - 1)
+                        except ValueError:
+                            dt = None
+                if dt is None:
+                    ra = rec.get("_resolved_at", "")
+                    if ra:
+                        try:
+                            dt = datetime.fromisoformat(ra)
+                        except ValueError:
+                            dt = None
+                if dt is not None:
                     if dt.tzinfo is None:
                         dt = dt.replace(tzinfo=timezone.utc)
                     if dt < cutoff:

@@ -217,14 +217,24 @@ def resolve_all() -> dict:
         # Save result
         rid = f"{sig['_src'].replace('.json','')}__{home_ru}__{away_ru}__{outcome}"
         rid = rid.replace("/", "_").replace(" ", "_")
+        out_path = RESULTS_DIR / f"{rid}.json"
+        
+        resolved_at = None
+        if out_path.exists():
+            try:
+                existing = json.loads(out_path.read_text(encoding="utf-8"))
+                resolved_at = existing.get("_resolved_at")
+            except Exception:
+                pass
+        
         out = {
             **sig,
             "_result": result,
             "_score": score_str,
             "_won": won,
-            "_resolved_at": datetime.now(MSK).isoformat(),
+            "_resolved_at": resolved_at or datetime.now(MSK).isoformat(),
         }
-        (RESULTS_DIR / f"{rid}.json").write_text(
+        out_path.write_text(
             json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8"
         )
 
