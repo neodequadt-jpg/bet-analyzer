@@ -12,7 +12,7 @@ import requests
 
 
 OMNI_URL = "http://127.0.0.1:20128/v1/chat/completions"
-MODEL = "gemini/gemini-3.1-flash-lite-preview"
+MODEL = "openrouter/openai/gpt-4o-mini"
 
 
 class BettingAI:

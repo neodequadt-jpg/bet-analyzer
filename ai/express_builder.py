@@ -7,7 +7,7 @@ import requests
 from ai.express_prompt import EXPRESS_SYSTEM_PROMPT, EXPRESS_CONSENSUS_PROMPT
 
 OMNI_URL = "http://127.0.0.1:20128/v1/chat/completions"
-MODEL = "gemini/gemini-3.1-flash-lite-preview"
+MODEL = "openrouter/openai/gpt-4o-mini"
 MIN_EV = 0.03
 MIN_CONFIDENCE = 0.6
 MIN_TRUST_SCORE = 0.7
