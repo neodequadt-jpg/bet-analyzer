@@ -713,6 +713,39 @@ def build_pipeline(skip_stale_hours: float = 1.0,
                      max_ahead_hours: float = 720.0):
     """Build pipeline. Skip matches whose kickoff < now - skip_stale_hours or > now + max_ahead_hours."""
     fonbet = fetch_rpl_odds(force=True)
+    # Добавляем общий поток Фонбета (китайский футбол, клубы и т.д.)
+    try:
+        from bookmakers.fonbet_extended import fetch_real_today
+        from bookmakers.parser import OddsEvent
+        from datetime import datetime, timezone
+        
+        fonbet_today_raw = fetch_real_today(hours=48)
+        fonbet_today = []
+        for d in fonbet_today_raw:
+            ts = d.get("start_ts", 0)
+            kickoff_iso = datetime.fromtimestamp(ts, tz=timezone.utc).isoformat() if ts else ""
+            fonbet_today.append(OddsEvent(
+                event_id=f"fonbet_today_{d.get('id', '')}",
+                sport=d.get("sport", "football"),
+                league=d.get("league", ""),
+                home=d.get("home", ""),
+                away=d.get("away", ""),
+                kickoff_iso=kickoff_iso,
+                bookmaker="Fonbet",
+                odds_home=d.get("odds_home"),
+                odds_draw=None,
+                odds_away=d.get("odds_away"),
+                odds_total_over=None,
+                odds_total_under=None,
+                total_line=None,
+            ))
+        fonbet = list(fonbet) + fonbet_today
+        print(f"[build_pipeline] fonbet today: {len(fonbet_today)}", file=sys.stderr)
+    except Exception as _e:
+        import traceback
+        traceback.print_exc()
+        print(f"[build_pipeline] fonbet today failed: {_sanitize_error(_e)}", file=sys.stderr)
+
     # Лига наций УЕФА — для consensus со Smarkets
     try:
         nations = fetch_nations_odds()
