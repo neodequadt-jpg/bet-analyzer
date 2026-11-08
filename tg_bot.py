@@ -1957,7 +1957,7 @@ def cmd_backtest() -> str:
     try:
         resolve_all()
     except Exception as _e:
-        print(f"[backtest] resolve failed: {_e}", file=sys.stderr)
+        print(f"[backtest] resolve failed: {_sanitize_error(_e)}", file=sys.stderr)
 
     stats = stats_summary()
     total = stats.get("total", 0)
@@ -2486,7 +2486,7 @@ def _set_bot_menu() -> None:
         ]})
         print("[tg_bot] native menu registered", file=sys.stderr)
     except Exception as e:
-        print(f"[tg_bot] setMyCommands failed: {e}", file=sys.stderr)
+        print(f"[tg_bot] setMyCommands failed: {_sanitize_error(e)}", file=sys.stderr)
 
 
 def warmup(max_pings=5, pause=1.0) -> int:
@@ -2544,10 +2544,10 @@ def main():
                 n = len(fetch_smarkets_events(hours=168, max_events=20))
                 print(f"[tg_bot] smarkets warmed: {n}", file=sys.stderr)
             except Exception as _e:
-                print(f"[tg_bot] smarkets warm failed: {_e}", file=sys.stderr)
+                print(f"[tg_bot] smarkets warm failed: {_sanitize_error(_e)}", file=sys.stderr)
         threading.Thread(target=_warm, daemon=True).start()
     except Exception as _e:
-        print(f"[tg_bot] warm thread failed: {_e}", file=sys.stderr)
+        print(f"[tg_bot] warm thread failed: {_sanitize_error(_e)}", file=sys.stderr)
     if TG_ADMIN_IDS:
         print(f"[tg_bot] chat whitelist: {sorted(TG_ADMIN_IDS)}")
 
