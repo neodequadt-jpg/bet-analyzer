@@ -785,7 +785,8 @@ def build_pipeline(skip_stale_hours: float = 1.0,
         # Pinnacle UEL + UECL (overlap with Fonbet extended)
         pinnacle_uel = fetch_theoddsapi_odds('soccer_uefa_europa_league', bookmakers='pinnacle', ttl=900)
         pinnacle_uecl = fetch_theoddsapi_odds('soccer_uefa_europa_conference_league', bookmakers='pinnacle', ttl=900)
-        pinnacle = pinnacle_epl + pinnacle_nl + pinnacle_buli + pinnacle_liga + pinnacle_seriea + pinnacle_uel + pinnacle_uecl
+        pinnacle_ligue1 = fetch_theoddsapi_odds('soccer_france_ligue_one', bookmakers='pinnacle', ttl=900)
+        pinnacle = pinnacle_epl + pinnacle_nl + pinnacle_buli + pinnacle_liga + pinnacle_seriea + pinnacle_uel + pinnacle_uecl + pinnacle_ligue1
         print(f"[build_pipeline] pinnacle: {len(pinnacle)} events", file=sys.stderr)
     except Exception as _e:
         print(f"[build_pipeline] pinnacle FAILED: {_sanitize_error(_e)}", file=sys.stderr)

@@ -3,10 +3,12 @@ Normalizer: объединяет OddsEvent[] из разных источник�
 Маппинг по (normalized_home, normalized_away) — имена команд могут отличаться.
 """
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Iterable
 
 from bookmakers.parser import OddsEvent
+from bookmakers.team_aliases_en import RU_TO_EN
 
 
 # Синонимы названий команд (Fonbet / Manual / Flashscore называют по-разному)
@@ -114,10 +116,19 @@ TEAM_ALIASES = {
 }
 
 
+def _strip_diacritics(s: str) -> str:
+    """Atlético -> Atletico, Koln -> Koln, Alaves -> Alaves."""
+    return ''.join(c for c in unicodedata.normalize('NFD', s)
+                   if not unicodedata.combining(c))
+
+
 def normalize_team(name: str) -> str:
     n = (name or "").strip().lower()
     # Убираем пробелы в начале/конце, схлопываем множественные
     n = re.sub(r"\s+", " ", n)
+    n = _strip_diacritics(n)
+    # RU->EN first (top-5 leagues), then TEAM_ALIASES (RU+EN canonical forms)
+    n = RU_TO_EN.get(n, n)
     return TEAM_ALIASES.get(n, n)
 
 
