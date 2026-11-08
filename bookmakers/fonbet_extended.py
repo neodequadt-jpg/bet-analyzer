@@ -13,7 +13,7 @@ Stdlib only — no new dependencies.
 """
 import time
 
-from bookmakers.fonbet_api import F_AWAY, F_HOME, fetch_list_base
+from bookmakers.fonbet_api import F_AWAY, F_DRAW, F_HOME, fetch_list_base
 
 # Sport aliases (lowercase, RU+EN) -> Fonbet sport id
 SPORT_ALIASES: dict[str, int] = {
@@ -183,6 +183,7 @@ def fetch_real_today(sports=None, hours=24, max_per_sport=10):
             'away': e.get('team2', ''),
             'start_ts': tsi,
             'odds_home': home_o,
+            'odds_draw': odds.get(F_DRAW),
             'odds_away': away_o,
         })
     result.sort(key=lambda x: x['start_ts'])
