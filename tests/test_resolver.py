@@ -40,8 +40,20 @@ class TestResolverHelpers(unittest.TestCase):
         self.assertIsNone(_find_match(events, "Словакия", "Молдова"))
 
     def test_resolve_all_shape(self):
-        from scoring.resolver import resolve_all
-        r = resolve_all()
+        import tempfile
+        import pathlib
+        from unittest.mock import patch
+        import scoring.resolver as resolver_mod
+
+        with tempfile.TemporaryDirectory() as td:
+            empty_signals = pathlib.Path(td) / "signals"
+            empty_results = pathlib.Path(td) / "results"
+            empty_signals.mkdir()
+            empty_results.mkdir()
+            with patch.object(resolver_mod, "SIGNALS_DIR", empty_signals), \
+                 patch.object(resolver_mod, "RESULTS_DIR", empty_results):
+                r = resolver_mod.resolve_all()
+
         for k in ("checked", "resolved", "won", "lost", "pending", "skipped"):
             self.assertIn(k, r)
 
