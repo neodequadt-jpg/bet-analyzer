@@ -777,14 +777,14 @@ def build_pipeline(skip_stale_hours: float = 1.0,
     # Pinnacle (TheOddsAPI) — sharp book для калибровки consensus
     pinnacle = []
     try:
-        pinnacle_epl = fetch_pinnacle_epl(ttl=300)
-        pinnacle_buli = fetch_pinnacle_bundesliga(ttl=300)
-        pinnacle_liga = fetch_pinnacle_liga(ttl=300)
-        pinnacle_seriea = fetch_pinnacle_serie_a(ttl=300)
-        pinnacle_nl = fetch_pinnacle_nations_league(ttl=300)
+        pinnacle_epl = fetch_pinnacle_epl(ttl=900)
+        pinnacle_buli = fetch_pinnacle_bundesliga(ttl=900)
+        pinnacle_liga = fetch_pinnacle_liga(ttl=900)
+        pinnacle_seriea = fetch_pinnacle_serie_a(ttl=900)
+        pinnacle_nl = fetch_pinnacle_nations_league(ttl=900)
         # Pinnacle UEL + UECL (overlap with Fonbet extended)
-        pinnacle_uel = fetch_theoddsapi_odds('soccer_uefa_europa_league', bookmakers='pinnacle', ttl=300)
-        pinnacle_uecl = fetch_theoddsapi_odds('soccer_uefa_europa_conference_league', bookmakers='pinnacle', ttl=300)
+        pinnacle_uel = fetch_theoddsapi_odds('soccer_uefa_europa_league', bookmakers='pinnacle', ttl=900)
+        pinnacle_uecl = fetch_theoddsapi_odds('soccer_uefa_europa_conference_league', bookmakers='pinnacle', ttl=900)
         pinnacle = pinnacle_epl + pinnacle_nl + pinnacle_buli + pinnacle_liga + pinnacle_seriea + pinnacle_uel + pinnacle_uecl
         print(f"[build_pipeline] pinnacle: {len(pinnacle)} events", file=sys.stderr)
     except Exception as _e:
