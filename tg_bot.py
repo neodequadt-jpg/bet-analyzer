@@ -719,7 +719,7 @@ def build_pipeline(skip_stale_hours: float = 1.0,
         from bookmakers.parser import OddsEvent
         from datetime import datetime, timezone
         
-        fonbet_today_raw = fetch_real_today(hours=168, max_per_sport=50)
+        fonbet_today_raw = fetch_real_today(hours=360, max_per_sport=50)
         fonbet_today = []
         for d in fonbet_today_raw:
             ts = d.get("start_ts", 0)
