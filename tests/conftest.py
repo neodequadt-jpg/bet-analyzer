@@ -53,3 +53,8 @@ def _mock_fonbet():
     yield
 
     fa.fetch_list_base = original
+
+# Tests must not require real secrets from ~/.bet_env (EVR-0032 made OMNI_KEY strict).
+# Appended at EOF: conftest.py is imported before any test module, so this runs first.
+import os as _os_for_tests
+_os_for_tests.environ.setdefault("OMNI_KEY", "sk-test-dummy-not-used-in-assertions")
