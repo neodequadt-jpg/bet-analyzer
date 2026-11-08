@@ -2470,6 +2470,8 @@ def handle(update):
 def _set_bot_menu() -> None:
     """Register bot commands in Telegram native menu (hamburger icon)."""
     commands = [
+        ("start", "Начать заново / Start"),
+        ("help", "Помощь / Help"),
         ("value", "Value bets с EV"),
         ("signals", "Топ-5 сигналов + Kelly"),
         ("express", "AI-экспресс"),
